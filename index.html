@@ -1,0 +1,3760 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>胡说八道论文生成器</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: #f5f5f5;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* 左侧控制面板 */
+        .control-panel {
+            width: 320px;
+            background: #fff;
+            border-right: 1px solid #e0e0e0;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .panel-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #1976d2;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #1976d2;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: #1976d2;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: #1976d2;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #1565c0;
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .btn-secondary:hover {
+            background: #eee;
+        }
+
+        .example-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .example-tag {
+            padding: 4px 10px;
+            background: #f0f4f8;
+            border: 1px solid #d0e0f0;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #1976d2;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .example-tag:hover {
+            background: #e3f2fd;
+            border-color: #1976d2;
+        }
+
+        /* 右侧预览区 */
+        .preview-container {
+            flex: 1;
+            background: #f0f0f0;
+            padding: 24px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .paper-wrapper {
+            width: 100%;
+            max-width: 820px;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08),
+                        0 4px 12px rgba(0, 0, 0, 0.05);
+            padding: 70px 90px;
+            margin: 0 auto 24px auto;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .paper-wrapper::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(0, 0, 0, 0.02) 20%, 
+                rgba(0, 0, 0, 0.03) 50%, 
+                rgba(0, 0, 0, 0.02) 80%, 
+                transparent 100%);
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-text {
+            font-size: 14px;
+        }
+
+        /* 论文内容样式 */
+        .paper-content {
+            font-family: 'SimSun', '宋体', 'Times New Roman', serif;
+            font-size: 14px;
+            line-height: 1.75;
+            color: #000;
+            text-align: justify;
+            text-justify: inter-ideograph;
+        }
+
+        .paper-content h1 {
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 24px;
+            margin-top: 0;
+            font-family: 'SimHei', '黑体', sans-serif;
+            line-height: 1.5;
+            letter-spacing: 2px;
+        }
+
+        .paper-content .authors {
+            text-align: center;
+            font-size: 14px;
+            margin-bottom: 8px;
+            font-family: 'SimHei', '黑体', sans-serif;
+            letter-spacing: 1px;
+        }
+
+        .paper-content .affiliations {
+            text-align: center;
+            font-size: 13px;
+            color: #333;
+            margin-bottom: 20px;
+            font-style: normal;
+            font-family: 'SimSun', '宋体', serif;
+        }
+
+        .paper-content .abstract {
+            margin-bottom: 16px;
+            padding: 0;
+            background: none;
+            border-left: none;
+            font-size: 14px;
+        }
+
+        .paper-content .abstract p {
+            text-indent: 2em;
+            font-size: 14px;
+            line-height: 1.75;
+            margin-bottom: 0;
+        }
+
+        .paper-content .abstract strong {
+            font-family: 'SimHei', '黑体', sans-serif;
+            font-weight: bold;
+        }
+
+        .paper-content .keywords {
+            margin-bottom: 24px;
+            font-size: 14px;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .paper-content .keywords strong {
+            font-family: 'SimHei', '黑体', sans-serif;
+            font-weight: bold;
+        }
+
+        .paper-content h2 {
+            font-size: 17px;
+            font-weight: bold;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-family: 'SimHei', '黑体', sans-serif;
+            color: #000;
+            text-align: left;
+        }
+
+        .paper-content h3 {
+            font-size: 15px;
+            font-weight: bold;
+            margin-top: 16px;
+            margin-bottom: 8px;
+            font-family: 'SimHei', '黑体', sans-serif;
+            color: #000;
+            text-align: left;
+        }
+
+        .paper-content h4 {
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 12px;
+            margin-bottom: 6px;
+            font-family: 'SimHei', '黑体', sans-serif;
+            color: #000;
+            text-align: left;
+        }
+
+        .paper-content p {
+            text-indent: 2em;
+            margin-bottom: 6px;
+            margin-top: 0;
+            text-align: justify;
+            text-justify: inter-ideograph;
+        }
+
+        .paper-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 13px;
+        }
+
+        .paper-content th,
+        .paper-content td {
+            border: 1px solid #000;
+            padding: 6px 10px;
+            text-align: center;
+        }
+
+        .paper-content th {
+            background: #f5f5f5;
+            font-weight: bold;
+            font-family: 'SimHei', '黑体', sans-serif;
+        }
+
+        .paper-content .table-caption {
+            text-align: center;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 6px;
+            margin-top: 12px;
+            font-family: 'SimHei', '黑体', sans-serif;
+        }
+
+        .paper-content .figure-caption {
+            text-align: center;
+            font-size: 13px;
+            font-weight: bold;
+            margin-top: 6px;
+            margin-bottom: 12px;
+            font-family: 'SimHei', '黑体', sans-serif;
+        }
+
+        .paper-content .figure-placeholder {
+            width: 100%;
+            height: 160px;
+            background: linear-gradient(135deg, #f5f5f5 25%, #e8e8e8 25%, #e8e8e8 50%, #f5f5f5 50%, #f5f5f5 75%, #e8e8e8 75%);
+            background-size: 20px 20px;
+            border: 1px solid #999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 12px;
+            margin: 10px 0;
+        }
+
+        .paper-content .formula {
+            text-align: center;
+            margin: 12px 0;
+            font-family: 'Times New Roman', 'Times', serif;
+            font-style: italic;
+            font-size: 13px;
+            position: relative;
+        }
+
+        .paper-content .formula-number {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            font-style: normal;
+            font-family: 'SimSun', '宋体', serif;
+        }
+
+        .paper-content ul,
+        .paper-content ol {
+            margin: 8px 0;
+            padding-left: 2em;
+        }
+
+        .paper-content li {
+            margin-bottom: 4px;
+            text-align: justify;
+        }
+
+        .paper-content .references {
+            font-size: 13px;
+            line-height: 1.7;
+            font-family: 'SimSun', '宋体', 'Times New Roman', serif;
+        }
+
+        .paper-content .references p {
+            text-indent: 0;
+            margin-bottom: 4px;
+            margin-top: 0;
+            padding-left: 2em;
+            text-indent: -2em;
+            text-align: justify;
+        }
+
+        .paper-content .acknowledgment {
+            margin-top: 24px;
+            padding-top: 0;
+            border-top: none;
+            font-size: 14px;
+            font-family: 'SimSun', '宋体', serif;
+        }
+        .paper-content .acknowledgment h2 {
+            font-size: 17px;
+            font-weight: bold;
+            font-family: 'SimHei', '黑体', sans-serif;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #1976d2;
+            font-size: 14px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e0e0e0;
+            border-top-color: #1976d2;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 左侧控制面板 -->
+        <div class="control-panel">
+            <div class="panel-title">胡说八道论文生成器</div>
+
+            <div class="form-group">
+                <label class="form-label">论文主题关键词（用空格分隔，可留空随机）</label>
+                <input type="text" class="form-input" id="keywordsInput" placeholder="例如：量子纠缠 奶茶 热力学">
+                <div class="example-tags">
+                    <span class="example-tag" onclick="setExample('量子纠缠 奶茶 热力学')">量子奶茶</span>
+                    <span class="example-tag" onclick="setExample('区块链 螺蛳粉 混沌理论')">区块链螺蛳粉</span>
+                    <span class="example-tag" onclick="setExample('元宇宙 煎饼果子 统计力学')">元宇宙煎饼</span>
+                    <span class="example-tag" onclick="setExample('暗物质 烤红薯 引力波')">暗物质烤红薯</span>
+                    <span class="example-tag" onclick="setExample('神经网络 算命 周易')">神经网络算命</span>
+                    <span class="example-tag" onclick="setExample('')">完全随机</span>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">论文类型</label>
+                <select class="form-select" id="paperType">
+                    <option value="journal">学术期刊论文</option>
+                    <option value="master">硕士学位论文</option>
+                    <option value="doctor">博士学位论文</option>
+                    <option value="conference">会议论文</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">论文篇幅</label>
+                <select class="form-select" id="paperLength">
+                    <option value="short">短篇（约4000字）</option>
+                    <option value="medium" selected>中篇（约8000字）</option>
+                    <option value="long">长篇（约15000字）</option>
+                </select>
+            </div>
+
+            <div class="loading" id="loading">
+                <span class="loading-spinner"></span>
+                正在生成论文...
+            </div>
+
+            <button class="btn btn-primary" onclick="generatePaper()">生成论文</button>
+            <button class="btn btn-secondary" onclick="exportWord()">导出 Word 文档</button>
+        </div>
+
+        <!-- 右侧预览区 -->
+        <div class="preview-container">
+            <div class="paper-wrapper">
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-icon">📄</div>
+                    <div class="empty-text">点击左侧"生成论文"按钮开始</div>
+                </div>
+                <div class="paper-content" id="paperContent" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============== 数据池 ==============
+
+        // 关键词池
+        const KEYWORD_POOLS = {
+            physics: ['量子纠缠', '暗物质', '引力波', '弦理论', '黑洞', '虫洞', '量子隧穿', '薛定谔的猫', '海森堡不确定性', '玻色-爱因斯坦凝聚', '拓扑相变', '量子涨落', '真空极化', '希格斯场', '中微子振荡', '夸克禁闭', '渐近自由', '规范对称性', '自发对称性破缺', '重整化群'],
+            food: ['奶茶', '螺蛳粉', '煎饼果子', '烤红薯', '火锅', '烧烤', '麻辣烫', '小龙虾', '臭豆腐', '糖葫芦', '棉花糖', '爆米花', '薯条', '汉堡', '披萨', '寿司', '拉面', '饺子', '包子', '油条'],
+            tech: ['区块链', '元宇宙', '人工智能', '大数据', '云计算', '物联网', '5G', '量子计算', '神经网络', '深度学习', '增强现实', '虚拟现实', '边缘计算', '数字孪生', '联邦学习', '知识图谱', '自然语言处理', '计算机视觉', '机器人', '自动驾驶'],
+            social: ['内卷', '躺平', '摸鱼', '社恐', '社牛', 'emo', '破防', '绝绝子', 'yyds', 'awsl', '打工人', '干饭人', '尾款人', '韭菜', '吃瓜', '凡尔赛', 'PUA', '996', '007', '佛系'],
+            academic: ['热力学', '混沌理论', '统计力学', '流体力学', '固体力学', '量子力学', '经典力学', '电动力学', '相对论', '量子场论', '凝聚态物理', '粒子物理', '天体物理', '宇宙学', '弦理论', 'M理论', '圈量子引力', '因果动力学三角剖分', '熵增原理', '最小作用量原理']
+        };
+
+        // 作者名字
+        const AUTHOR_NAMES = [
+            '王德发', '张无序', '李混沌', '王量子', '刘熵增', '陈涨落', '杨隧穿', '赵相干',
+            '孙叠加', '周纠缠', '吴跃迁', '郑散射', '王衍射', '冯干涉', '陈偏振', '褚共振',
+            '卫色散', '蒋耗散', '沈涨落', '韩临界', '杨相变', '朱分岔', '秦分形', '尤混沌',
+            '许自组织', '何涌现', '吕对称性', '施破缺', '张重整化', '孔正规化', '曹微扰',
+            '严非微扰', '华拓扑', '金曲率', '魏挠率', '陶联络', '姜纤维丛', '戚流形',
+            '谢同伦', '邹同调', '喻上同调', '柏范畴', '水函子', '窦自然变换', '章米田引理',
+            '云伴随函子', '苏单子', '潘代数', '葛余代数', '奚双代数', '范Hopf代数',
+            '彭李代数', '郎李群', '鲁表示论', '韦特征标', '马权代数', '苗顶点算子代数'
+        ];
+
+        // 大学/机构
+        const UNIVERSITIES = [
+            '非线性早餐研究所', '宇宙袜子失踪现象研究中心', '平行时空脆度实验室',
+            '量子奶茶研究中心', '螺蛳粉混沌理论实验室', '煎饼果子统计力学研究所',
+            '烤红薯引力波观测站', '算命神经网络研究院', '摸鱼动力学研究中心',
+            '内卷热力学实验室', '躺平量子态研究所', '社恐场论研究中心',
+            '干饭人热力学协会', '韭菜生长动力学实验室', '凡尔赛统计研究中心',
+            '996熵增研究所', '007相变研究中心', '佛系量子态实验室',
+            '破防临界现象研究中心', 'emo涨落动力学实验室', '绝绝子共振研究所',
+            'yyds对称性破缺研究中心', 'awsl量子隧穿实验室', '吃瓜拓扑场论研究所'
+        ];
+
+        // 期刊名
+        const JOURNALS = [
+            '《胡说物理学报》', '《混沌与无序》', '《量子早餐动力学》',
+            '《应用胡说八道》', '《理论扯淡》', '《实验废话》',
+            '《现代伪科学》', '《虚构物理评论》', '《抽象研究快报》',
+            '《非线性扯淡》', '《统计胡说》', '《量子废话》',
+            '《膜宇宙学杂志》', '《弦论早餐版》', '《凝聚态胡说》',
+            '《粒子物理扯淡》', '《天体物理废话》', '《宇宙学胡说》'
+        ];
+
+        // 研究方法
+        const RESEARCH_METHODS = [
+            '蒙特卡洛方法', '分子动力学模拟', '密度泛函理论', '第一性原理计算',
+            '有限元分析', '边界元方法', '傅里叶变换', '小波分析',
+            '主成分分析', '独立成分分析', '支持向量机', '随机森林',
+            '神经网络', '深度学习', '强化学习', '贝叶斯推断',
+            '马尔可夫链蒙特卡洛', '变分推断', '期望最大化', '梯度下降',
+            '牛顿法', '拟牛顿法', '共轭梯度法', '线性规划',
+            '非线性规划', '动态规划', '遗传算法', '粒子群优化',
+            '模拟退火', '禁忌搜索', '蚁群算法', '免疫算法'
+        ];
+
+        // 物理量/学术术语
+        const PHYSICAL_QUANTITIES = [
+            '熵', '焓', '自由能', '配分函数', '态密度', '费米能级',
+            '玻色分布', '费米分布', '麦克斯韦分布', '玻尔兹曼分布',
+            '关联函数', '结构因子', '响应函数', '极化率', '磁化率',
+            '介电常数', '电导率', '热导率', '扩散系数', '黏滞系数',
+            '表面张力', '接触角', '浸润性', '吸附能', '脱附能',
+            '活化能', '反应速率', '半衰期', '寿命', '弛豫时间',
+            '相干时间', '退相干时间', '纠缠熵', '保真度', '保真度'
+        ];
+
+        // 英文学术名词（用于增加混沌感）
+        const ENGLISH_TERMS = [
+            'Quantum Coherence', 'Topological Order', 'Emergent Phenomena',
+            'Non-equilibrium Dynamics', 'Self-organized Criticality',
+            'Fractal Dimension', 'Strange Attractor', 'Lyapunov Exponent',
+            'Renormalization Group', 'Effective Field Theory',
+            'Path Integral', 'Feynman Diagram', 'Density Functional Theory',
+            'Molecular Dynamics', 'Monte Carlo Simulation',
+            'Brownian Motion', 'Stochastic Process', 'Markov Chain',
+            'Bayesian Inference', 'Maximum Entropy',
+            'Phase Transition', 'Critical Exponent', 'Scaling Law',
+            'Universality Class', 'Symmetry Breaking',
+            'Goldstone Mode', 'Higgs Mechanism', 'Gauge Theory',
+            'String Theory', 'M-theory', 'Brane Cosmology',
+            'Dark Matter', 'Dark Energy', 'Cosmological Constant',
+            'Multiverse Hypothesis', 'Anthropic Principle',
+            'Quantum Gravity', 'Loop Quantum Gravity',
+            'Holographic Principle', 'AdS/CFT Correspondence',
+            'Quantum Entanglement', 'Quantum Teleportation',
+            'Quantum Computing', 'Quantum Supremacy',
+            'Neural Network', 'Deep Learning', 'Backpropagation',
+            'Reinforcement Learning', 'Generative Adversarial Network',
+            'Transformer Architecture', 'Attention Mechanism',
+            'Emergent Behavior', 'Collective Intelligence',
+            'Complex Adaptive System', 'Edge of Chaos',
+            'Quantum Tunneling', 'Quantum Superposition',
+            'Wave-particle Duality', 'Uncertainty Principle',
+            'Schrödinger Equation', 'Dirac Equation',
+            'Maxwell Equations', 'Navier-Stokes Equations',
+            'Euler-Lagrange Equation', 'Hamiltonian Formalism',
+            'Lagrangian Mechanics', 'Hamiltonian Mechanics',
+            'Statistical Mechanics', 'Thermodynamic Limit',
+            'Ergodic Hypothesis', 'Poincaré Recurrence',
+            'Chaos Theory', 'Bifurcation Theory',
+            'Catastrophe Theory', 'Synergetics',
+            'Dissipative Structure', 'Self-organization',
+            'Autopoiesis', 'Structural Coupling',
+            'Observational Equivalence', 'Underdetermination',
+            'Duhem-Quine Thesis', 'Paradigm Shift',
+            'Scientific Revolution', 'Normal Science',
+            'Research Programme', 'Hard Core',
+            'Protective Belt', 'Progressive Problemshift',
+            'Degenerating Problemshift', 'Falsifiability',
+            'Verificationism', 'Confirmation Holism',
+            'Theory-ladenness', 'Incommensurability',
+            'Conceptual Scheme', 'Ontological Relativity',
+            'Indeterminacy of Translation', 'Gavagai',
+            'Quantum Darwinism', 'Decoherence',
+            'Many-worlds Interpretation', 'Copenhagen Interpretation',
+            'Pilot-wave Theory', 'Consistent Histories',
+            'Quantum Bayesianism', 'Relational Quantum Mechanics',
+            'Transactional Interpretation', 'Ensemble Interpretation',
+            'Objective Collapse', 'Spontaneous Localization',
+            'Penrose Interpretation', 'Orch-OR',
+            'Quantum Mind', 'Hard Problem of Consciousness',
+            'Philosophical Zombie', 'Qualia',
+            'Epiphenomenalism', 'Panpsychism',
+            'Integrated Information Theory', 'Global Workspace Theory',
+            'Multiple Drafts Model', 'Chinese Room Argument',
+            'Turing Test', 'Searle\'s Chinese Room',
+            'Functionalism', 'Type Physicalism',
+            'Token Physicalism', 'Anomalous Monism',
+            'Supervenience', 'Emergentism',
+            'Reductionism', 'Holism',
+            'Methodological Individualism', 'Methodological Holism',
+            'Microreduction', 'Macroreduction',
+            'Intertheoretic Reduction', 'Bridge Laws',
+            'Special Sciences', 'Multiple Realizability',
+            'Downward Causation', 'Top-down Causation',
+            'Bottom-up Causation', 'Circular Causality',
+            'Reciprocal Causation', 'Mutual Manipulability',
+            'Causal Exclusion', 'Overdetermination',
+            'Epiphenomenalism', 'Parallelism',
+            'Occasionalism', 'Pre-established Harmony',
+            'Psychophysical Parallelism', 'Mind-body Problem',
+            'Hard Problem', 'Easy Problems',
+            'The Explanatory Gap', 'Neural Correlates of Consciousness',
+            'NCC', 'Global Neuronal Workspace',
+            'Local Recurrent Processing', 'First-order Theories',
+            'Higher-order Theories', 'Higher-order Thought',
+            'Higher-order Perception', 'Self-representational Theories',
+            'Same-order Theories', 'Intrinsic Theories',
+            'Quantum Theories of Consciousness', 'Orchestrated Objective Reduction',
+            'Penrose-Hameroff', 'Microtubules',
+            'Quantum Coherence in the Brain', 'Warm Quantum Brain'
+        ];
+
+        // 混沌学术词汇（不明所以的高级词汇）
+        const CHAOS_WORDS = [
+            '超验性', '存在论', '认识论', '本体论', '范式转换',
+            '解构主义', '建构主义', '实证主义', '证伪主义',
+            '现象学', '诠释学', '结构主义', '后结构主义',
+            '话语实践', '知识考古', '谱系学', '异质性',
+            '延异', '播散', '踪迹', '补充',
+            '镜像阶段', '想象界', '象征界', '实在界',
+            '力比多', '无意识', '潜意识', '集体无意识',
+            '原型', '阴影', '人格面具', '阿尼玛',
+            '能指', '所指', '漂浮的能指', '符号秩序',
+            '规训', '惩戒', '生命权力', '治理术',
+            '全景敞视主义', '异托邦', '拟像', '超真实',
+            '内爆', '外爆', '媒介即讯息', '地球村',
+            '赛博空间', '虚拟现实', '增强现实', '元宇宙',
+            '后人类主义', '超人类主义', '技术奇点',
+            '涌现性', '自组织', '耗散结构', '协同学',
+            '突变论', '分形几何', '混沌理论', '复杂系统',
+            '蝴蝶效应', '初值敏感性', '奇怪吸引子',
+            '分岔', '倍周期', '准周期', '混沌边缘',
+            '量子隧穿', '量子叠加', '量子纠缠',
+            '薛定谔的猫', '观察者效应', '测量问题',
+            '多世界诠释', '退相干', '量子芝诺效应',
+            '本体论承诺', '认识论断裂', '知识型',
+            '知识考古学', '权力/知识', '生物权力',
+            '生命政治', '治理性', '国家理性',
+            '警察国家', '规训社会', '控制社会',
+            '全景敞视', '环形监狱', '边沁的全景监狱',
+            '异质空间', '乌托邦', '反乌托邦',
+            '敌托邦', '恶托邦', '无何有之乡',
+            '乌有之乡', '世外桃源', '香格里拉',
+            '伊甸园', '失乐园', '复乐园',
+            '巴别塔', '诺亚方舟', '最后的审判',
+            '启示录', '天启', '末日审判',
+            '千禧年', '末世论', '终末论',
+            '历史的终结', '最后的人', '超人',
+            '权力意志', '永恒轮回', '重估一切价值',
+            '上帝已死', '虚无主义', '消极虚无主义',
+            '积极虚无主义', '最高价值的自行贬黜',
+            '柏拉图主义', '反柏拉图主义', '形而上学',
+            '存在者整体', '存在之真理', '存在的遗忘',
+            '此在', '在世之在', '与他人共在',
+            '向死而生', '畏', '烦',
+            '沉沦', '被抛', '筹划',
+            '本真状态', '非本真状态', '常人',
+            '他们', '闲言', '好奇',
+            '两可', '沉沦态', '畏之无',
+            '无何有之乡', '无', '虚无',
+            '存在与时间', '存在与虚无', '存在与事件',
+            '事件', '增补', '延异',
+            '播散', '踪迹', '替补',
+            '补充逻辑', '在场形而上学', '逻各斯中心主义',
+            '语音中心主义', '男性中心主义', '菲勒斯中心主义',
+            '本质主义', '反本质主义', '基础主义',
+            '反基础主义', '相对主义', '绝对主义',
+            '普遍主义', '特殊主义', '个体主义',
+            '整体主义', '原子主义', '单子论',
+            '前定和谐', '充足理由律', '矛盾律',
+            '同一律', '排中律', '二值原则',
+            '多值逻辑', '模糊逻辑', '模态逻辑',
+            '道义逻辑', '时态逻辑', '认知逻辑',
+            '直觉主义逻辑', '相干逻辑', '次协调逻辑',
+            '弗协调逻辑', '双面真理论', '爆炸原理',
+            '归谬法', '反证法', '辩证法',
+            '正题', '反题', '合题',
+            '否定之否定', '扬弃', '异化',
+            '对象化', '外化', '内化',
+            '中介', '直接性', '间接性',
+            '具体普遍性', '抽象普遍性', '具体同一性',
+            '差异辩证法', '同一辩证法', '矛盾辩证法',
+            '主奴辩证法', '承认的辩证法', '精神现象学',
+            '绝对精神', '绝对理念', '绝对知识',
+            '实体即主体', '凡是现实的都是合乎理性的',
+            '凡是合乎理性的都是现实的', '密涅瓦的猫头鹰',
+            '理性的狡计', '理性的机巧', '历史的狡计',
+            '世界历史', '世界历史个人', '历史理性',
+            '历史决定论', '历史目的论', '历史进步论',
+            '历史循环论', '历史终结论', '后历史',
+            '后现代', '后现代性', '后现代主义',
+            '后结构主义', '后殖民主义', '后马克思主义',
+            '后哲学', '后形而上学', '后神学',
+            '后真相', '后事实', '后真理',
+            '后真相时代', '后真相政治', '后真相社会',
+            '另类事实', '假新闻', '虚假信息',
+            '信息茧房', '回声室效应', '过滤气泡',
+            '算法偏见', '数据主义', '数据化',
+            '量化自我', '监控资本主义', '监视资本主义',
+            '平台资本主义', '认知资本主义', '非物质劳动',
+            '数字劳动', '情感劳动', '关系劳动',
+            '生命劳动', '活劳动', '死劳动',
+            '可变资本', '不变资本', '剩余价值',
+            '绝对剩余价值', '相对剩余价值', '超额剩余价值',
+            '剩余价值率', '利润率', '平均利润率',
+            '利润率下降趋势', '资本有机构成', '资本积累',
+            '资本集中', '资本积聚', '资本循环',
+            '资本周转', '固定资本', '流动资本',
+            '货币资本', '生产资本', '商品资本',
+            '产业资本', '商业资本', '借贷资本',
+            '生息资本', '虚拟资本', '金融资本',
+            '金融化', '新自由主义', '新保守主义',
+            '新帝国主义', '新殖民主义', '新种族主义',
+            '新性别主义', '新异性恋主义', '新父权制',
+            '新资本主义', '晚期资本主义', '跨国资本主义',
+            '全球资本主义', '帝国', '诸众',
+            '生命政治生产', '非物质劳动霸权', '认知资本主义',
+            '数字资本主义', '平台资本主义', '监控资本主义',
+            '算法治理', '数据治理', '智能治理',
+            '技术治理', '治理术', '国家治理',
+            '社会治理', '基层治理', '城市治理',
+            '全球治理', '区域治理', '环境治理',
+            '生态治理', '风险治理', '危机治理',
+            '应急治理', '常态化治理', '运动式治理',
+            '项目制治理', '网格化治理', '精细化治理',
+            '精准治理', '智慧治理', '数字治理',
+            '电子政务', '数字政府', '智慧政府',
+            '服务型政府', '法治政府', '有限政府',
+            '有效政府', '责任政府', '透明政府',
+            '廉洁政府', '高效政府', '创新政府',
+            '学习型政府', '创新型政府', '服务型政府',
+            '企业家政府', '企业化政府', '市场化政府',
+            '新公共管理', '新公共服务', '新公共行政',
+            '公共治理', '公共管理', '公共行政',
+            '公共政策', '公共利益', '公共价值',
+            '公共理性', '公共领域', '公共空间',
+            '公共产品', '公共服务', '公共物品',
+            '公共选择', '公共选择理论', '理性选择',
+            '理性选择理论', '集体行动', '集体行动的逻辑',
+            '搭便车', '公地悲剧', '囚徒困境',
+            '零和博弈', '非零和博弈', '正和博弈',
+            '负和博弈', '纳什均衡', '帕累托最优',
+            '帕累托改进', '卡尔多-希克斯效率', '潜在帕累托改进',
+            '社会选择', '社会选择理论', '阿罗不可能定理',
+            '多数票规则', '孔多塞悖论', '投票悖论',
+            '中位投票人定理', '唐斯模型', '理性无知',
+            '理性冷漠', '理性弃权', '政治冷漠',
+            '政治参与', '政治效能感', '政治信任',
+            '政治合法性', '政治正当性', '政治权威',
+            '政治权力', '政治权利', '政治自由',
+            '政治平等', '政治正义', '政治民主',
+            '政治发展', '政治现代化', '政治变迁',
+            '政治转型', '政治转轨', '政治过渡',
+            '政治稳定', '政治秩序', '政治制度化',
+            '政治衰败', '政治腐化', '政治腐败',
+            '政治俘获', '政治寻租', '政治租金',
+            '政治市场', '政治企业家', '政治供给',
+            '政治需求', '政治均衡', '政治周期',
+            '政治商业周期', '机会主义', '道德风险',
+            '逆向选择', '信号传递', '信号甄别',
+            '委托-代理问题', '代理成本', '交易成本',
+            '交易费用', '科斯定理', '产权理论',
+            '契约理论', '不完全契约', '关系契约',
+            '隐性契约', '显性契约', '自我执行契约',
+            '声誉机制', '信任机制', '社会资本',
+            '社会网络', '嵌入性', '弱关系',
+            '强关系', '结构洞', '社会资源',
+            '社会分层', '社会流动', '社会排斥',
+            '社会整合', '社会团结', '社会凝聚力',
+            '社会共识', '社会冲突', '社会矛盾',
+            '社会问题', '社会风险', '社会危机',
+            '社会动荡', '社会失序', '社会失范',
+            '越轨行为', '偏差行为', '社会控制',
+            '社会规范', '社会习俗', '社会道德',
+            '社会伦理', '社会价值', '社会文化',
+            '社会结构', '社会制度', '社会组织',
+            '社会系统', '社会功能', '社会角色',
+            '社会互动', '社会交往', '社会关系',
+            '社会资本', '社会支持', '社会救助',
+            '社会保障', '社会福利', '社会服务',
+            '社会工作', '社会政策', '社会行政',
+            '社会管理', '社会治理', '社会建设',
+            '社会发展', '社会进步', '社会变迁',
+            '社会转型', '社会转轨', '社会过渡',
+            '社会现代化', '社会城市化', '社会工业化',
+            '社会信息化', '社会数字化', '社会智能化',
+            '社会网络化', '社会平台化', '社会算法化',
+            '社会数据化', '社会量化', '社会可计算化',
+            '社会可预测性', '社会可控制性', '社会可治理性',
+            '社会工程', '社会设计', '社会规划',
+            '社会实验', '社会试点', '社会示范',
+            '社会创新', '社会创业', '社会企业',
+            '社会组织', '社会团体', '社会中介',
+            '社会第三部门', '社会非营利组织', '社会非政府组织',
+            '社会公民社会', '社会市民社会', '社会公共领域',
+            '社会公共空间', '社会公共舆论', '社会公共意见',
+            '社会公共理性', '社会公共价值', '社会公共利益',
+            '社会公共产品', '社会公共服务', '社会公共物品',
+            '社会公共政策', '社会公共管理', '社会公共行政',
+            '社会公共治理', '社会公共事务', '社会公共问题',
+            '社会公共危机', '社会公共风险', '社会公共安全',
+            '社会公共卫生', '社会公共教育', '社会公共文化',
+            '社会公共交通', '社会公共设施', '社会公共资源',
+            '社会公共环境', '社会公共生态', '社会公共福祉',
+            '社会公共善', '社会公共正义', '社会公共公平',
+            '社会公共平等', '社会公共自由', '社会公共民主',
+            '社会公共法治', '社会公共秩序', '社会公共稳定',
+            '社会公共和谐', '社会公共幸福', '社会公共美好',
+            '社会公共理想', '社会公共愿景', '社会公共目标',
+            '社会公共使命', '社会公共责任', '社会公共担当'
+        ];
+
+        // 胡说八道彩蛋内容
+        const CRAZY_CONTENTS = [
+            '实验数据会随星期几变化',
+            '实验室的猫进来后结果就不一样了',
+            '下雨天和晴天结果差异很大',
+            '实验员心情好的时候数据更漂亮',
+            '每次导师来看实验就会出问题',
+            '周五下午的数据总是特别差',
+            '熬夜做的实验结果反而更好',
+            '喝完奶茶后做实验准确率会提升',
+            '设备会在最关键的时候出故障',
+            '对照组的数据总是比实验组好看',
+            '重复实验的结果永远不会完全一样',
+            '论文投稿后才会发现数据有问题',
+            '实验记录本会莫名其妙地消失',
+            '备份的文件永远找不到',
+            '以为是bug，结果是feature',
+            '以为是feature，结果是bug',
+            '数据会在你不看的时候自己变化',
+            '实验结果与星座运势高度相关',
+            '黄历上写着"不宜做实验"那天数据一定不好',
+            '实验室的风水会影响实验结果',
+            '每次换个座位，结果就不一样了',
+            '用蓝色笔记录的数据更准确',
+            '听古典音乐做实验，误差会变小',
+            '听摇滚乐做实验，数据会更有激情',
+            '外卖到了的那一刻，数据就出问题了',
+            '只要你说"这次应该没问题了"，就一定会出问题',
+            '墨菲定律在实验室里永远成立',
+            '越重要的实验，越容易出问题',
+            '越简单的步骤，越容易出错',
+            '你最有把握的地方，往往就是问题所在',
+            '凌晨三点的实验数据总是最神奇',
+            '实验室的微波炉会干扰实验结果',
+            '有人在背后看你做实验的时候，一定会出错',
+            '只要你一拍照，设备就坏了',
+            '理论上应该是这样的，但实际上不是',
+            '实际上是这样的，但理论上解释不通',
+            '这个现象只有在你老板面前才会出现',
+            '重复三次都一样的结果，一定是哪里错了',
+            '不一样的结果，说明实验没做好',
+            '反正最后都能凑出一篇论文来',
+            '实验结果会随着实验员的发型变化',
+            '穿红色衣服做实验，数据会更喜庆',
+            '穿黑色衣服做实验，数据会更严肃',
+            '穿白色衣服做实验，数据会更纯净',
+            '穿拖鞋做实验，数据会更随意',
+            '穿正装做实验，数据会更正式',
+            '实验前洗手，数据会更干净',
+            '实验前不洗手，数据会更有味道',
+            '实验前祈祷，数据会更神圣',
+            '实验前烧香，数据会更有灵性',
+            '实验前算命，数据会更有预见性',
+            '实验前看黄历，数据会更符合天时',
+            '实验前看星座，数据会更符合运势',
+            '实验前看塔罗牌，数据会更神秘',
+            '实验前抛硬币，数据会更随机',
+            '实验前掷骰子，数据会更不确定',
+            '实验前抽签，数据会更有宿命感',
+            '实验结果和实验员的智商成反比',
+            '实验结果和实验员的颜值成正比',
+            '实验结果和实验员的身高无关',
+            '实验结果和实验员的体重负相关',
+            '实验结果和实验员的睡眠质量正相关',
+            '实验结果和实验员的饮食质量正相关',
+            '实验结果和实验员的感情状态密切相关',
+            '实验员谈恋爱的时候，数据会更甜蜜',
+            '实验员失恋的时候，数据会更苦涩',
+            '实验员单身的时候，数据会更独立',
+            '实验员追星的时候，数据会更疯狂',
+            '实验员追剧的时候，数据会更有剧情',
+            '实验员打游戏的时候，数据会更有策略',
+            '实验员刷短视频的时候，数据会更碎片化',
+            '实验员看直播的时候，数据会更实时',
+            '实验结果会受到月球引力的影响',
+            '实验结果会受到太阳黑子的影响',
+            '实验结果会受到宇宙射线的影响',
+            '实验结果会受到中微子振荡的影响',
+            '实验结果会受到引力波的影响',
+            '实验结果会受到暗物质的影响',
+            '实验结果会受到暗能量的影响',
+            '实验结果会受到平行宇宙的干扰',
+            '实验结果会受到时间旅行的影响',
+            '实验结果会受到外星人的干预',
+            '实验结果会受到未来人类的警告',
+            '实验结果会受到高维生物的观察',
+            '实验结果会受到量子涨落的影响',
+            '实验结果会受到真空极化的影响',
+            '实验结果会受到希格斯场的影响',
+            '实验结果会受到夸克禁闭的影响',
+            '实验结果会受到渐近自由的影响',
+            '实验结果会受到规范对称性的影响',
+            '实验结果会受到自发对称性破缺的影响',
+            '实验结果会受到重整化群的影响',
+            '实验结果会受到有效场论的影响',
+            '实验结果会受到路径积分的影响',
+            '实验结果会受到费曼图的影响',
+            '实验结果会受到密度泛函理论的影响',
+            '实验结果会受到分子动力学的影响',
+            '实验结果会受到蒙特卡洛模拟的影响',
+            '实验结果会受到布朗运动的影响',
+            '实验结果会受到随机过程的影响',
+            '实验结果会受到马尔可夫链的影响',
+            '实验结果会受到贝叶斯推断的影响',
+            '实验结果会受到最大熵原理的影响',
+            '实验结果会受到相变的影响',
+            '实验结果会受到临界指数的影响',
+            '实验结果会受到标度律的影响',
+            '实验结果会受到普适类的影响',
+            '实验结果会受到对称性破缺的影响',
+            '实验结果会受到戈德斯通模的影响',
+            '实验结果会受到希格斯机制的影响',
+            '实验结果会受到规范理论的影响',
+            '实验结果会受到弦理论的影响',
+            '实验结果会受到M理论的影响',
+            '实验结果会受到膜宇宙学的影响',
+            '实验结果会受到宇宙学常数的影响',
+            '实验结果会受到多重宇宙假说的影响',
+            '实验结果会受到人择原理的影响',
+            '实验结果会受到量子引力的影响',
+            '实验结果会受到圈量子引力的影响',
+            '实验结果会受到全息原理的影响',
+            '实验结果会受到AdS/CFT对应的影响',
+            '实验结果会受到量子隐形传态的影响',
+            '实验结果会受到量子计算的影响',
+            '实验结果会受到量子霸权的影响',
+            '实验结果会受到神经网络的影响',
+            '实验结果会受到深度学习的影响',
+            '实验结果会受到反向传播的影响',
+            '实验结果会受到强化学习的影响',
+            '实验结果会受到生成对抗网络的影响',
+            '实验结果会受到Transformer架构的影响',
+            '实验结果会受到注意力机制的影响',
+            '实验结果会受到涌现行为的影响',
+            '实验结果会受到集体智能的影响',
+            '实验结果会受到复杂适应系统的影响',
+            '实验结果会受到混沌边缘的影响',
+            '实验结果会受到超验性的影响',
+            '实验结果会受到存在论的影响',
+            '实验结果会受到认识论的影响',
+            '实验结果会受到本体论的影响',
+            '实验结果会受到范式转换的影响',
+            '实验结果会受到解构主义的影响',
+            '实验结果会受到建构主义的影响',
+            '实验结果会受到实证主义的影响',
+            '实验结果会受到证伪主义的影响',
+            '实验结果会受到现象学的影响',
+            '实验结果会受到诠释学的影响',
+            '实验结果会受到结构主义的影响',
+            '实验结果会受到后结构主义的影响',
+            '实验结果会受到话语实践的影响',
+            '实验结果会受到知识考古的影响',
+            '实验结果会受到谱系学的影响',
+            '实验结果会受到异质性的影响',
+            '实验结果会受到延异的影响',
+            '实验结果会受到播散的影响',
+            '实验结果会受到踪迹的影响',
+            '实验结果会受到补充的影响',
+            '实验结果会受到镜像阶段的影响',
+            '实验结果会受到想象界的影响',
+            '实验结果会受到象征界的影响',
+            '实验结果会受到实在界的影响',
+            '实验结果会受到力比多的影响',
+            '实验结果会受到无意识的影响',
+            '实验结果会受到潜意识的影响',
+            '实验结果会受到集体无意识的影响',
+            '实验结果会受到原型的影响',
+            '实验结果会受到阴影的影响',
+            '实验结果会受到人格面具的影响',
+            '实验结果会受到阿尼玛的影响',
+            '实验结果会受到能指的影响',
+            '实验结果会受到所指的影响',
+            '实验结果会受到漂浮的能指的影响',
+            '实验结果会受到符号秩序的影响',
+            '实验结果会受到规训的影响',
+            '实验结果会受到惩戒的影响',
+            '实验结果会受到生命权力的影响',
+            '实验结果会受到治理术的影响',
+            '实验结果会受到全景敞视主义的影响',
+            '实验结果会受到异托邦的影响',
+            '实验结果会受到拟像的影响',
+            '实验结果会受到超真实的影响',
+            '实验结果会受到内爆的影响',
+            '实验结果会受到外爆的影响',
+            '实验结果会受到媒介即讯息的影响',
+            '实验结果会受到地球村的影响',
+            '实验结果会受到赛博空间的影响',
+            '实验结果会受到虚拟现实的影响',
+            '实验结果会受到增强现实的影响',
+            '实验结果会受到元宇宙的影响',
+            '实验结果会受到后人类主义的影响',
+            '实验结果会受到超人类主义的影响',
+            '实验结果会受到技术奇点的影响',
+            '实验结果会受到涌现性的影响',
+            '实验结果会受到自组织的影响',
+            '实验结果会受到耗散结构的影响',
+            '实验结果会受到协同学的影响',
+            '实验结果会受到突变论的影响',
+            '实验结果会受到分形几何的影响',
+            '实验结果会受到混沌理论的影响',
+            '实验结果会受到复杂系统的影响',
+            '实验结果会受到蝴蝶效应的影响',
+            '实验结果会受到初值敏感性的影响',
+            '实验结果会受到奇怪吸引子的影响',
+            '实验结果会受到分岔的影响',
+            '实验结果会受到倍周期的影响',
+            '实验结果会受到准周期的影响',
+            '实验结果会受到混沌边缘的影响',
+            '实验结果会受到量子隧穿的影响',
+            '实验结果会受到量子叠加的影响',
+            '实验结果会受到量子纠缠的影响',
+            '实验结果会受到薛定谔的猫的影响',
+            '实验结果会受到观察者效应的影响',
+            '实验结果会受到测量问题的影响',
+            '实验结果会受到多世界诠释的影响',
+            '实验结果会受到退相干的影响',
+            '实验结果会受到量子芝诺效应的影响',
+            '实验结果会受到本体论承诺的影响',
+            '实验结果会受到认识论断裂的影响',
+            '实验结果会受到知识型的影响',
+            '实验结果会受到知识考古学的影响',
+            '实验结果会受到权力/知识的影响',
+            '实验结果会受到生物权力的影响',
+            '实验结果会受到生命政治的影响',
+            '实验结果会受到治理性的影响',
+            '实验结果会受到国家理性的影响',
+            '实验结果会受到警察国家的影响',
+            '实验结果会受到规训社会的影响',
+            '实验结果会受到控制社会的影响',
+            '实验结果会受到全景敞视的影响',
+            '实验结果会受到环形监狱的影响',
+            '实验结果会受到边沁的全景监狱的影响',
+            '实验结果会受到异质空间的影响',
+            '实验结果会受到乌托邦的影响',
+            '实验结果会受到反乌托邦的影响',
+            '实验结果会受到敌托邦的影响',
+            '实验结果会受到恶托邦的影响',
+            '实验结果会受到无何有之乡的影响',
+            '实验结果会受到乌有之乡的影响',
+            '实验结果会受到世外桃源的影响',
+            '实验结果会受到香格里拉的影响',
+            '实验结果会受到伊甸园的影响',
+            '实验结果会受到失乐园的影响',
+            '实验结果会受到复乐园的影响',
+            '实验结果会受到巴别塔的影响',
+            '实验结果会受到诺亚方舟的影响',
+            '实验结果会受到最后的审判的影响',
+            '实验结果会受到启示录的影响',
+            '实验结果会受到天启的影响',
+            '实验结果会受到末日审判的影响',
+            '实验结果会受到千禧年的影响',
+            '实验结果会受到末世论的影响',
+            '实验结果会受到终末论的影响',
+            '实验结果会受到历史的终结的影响',
+            '实验结果会受到最后的人的影响',
+            '实验结果会受到超人的影响',
+            '实验结果会受到权力意志的影响',
+            '实验结果会受到永恒轮回的影响',
+            '实验结果会受到重估一切价值的影响',
+            '实验结果会受到上帝已死的影响',
+            '实验结果会受到虚无主义的影响',
+            '实验结果会受到消极虚无主义的影响',
+            '实验结果会受到积极虚无主义的影响',
+            '实验结果会受到最高价值的自行贬黜的影响',
+            '实验结果会受到柏拉图主义的影响',
+            '实验结果会受到反柏拉图主义的影响',
+            '实验结果会受到形而上学的影响',
+            '实验结果会受到存在者整体的影响',
+            '实验结果会受到存在之真理的影响',
+            '实验结果会受到存在的遗忘的影响',
+            '实验结果会受到此在的影响',
+            '实验结果会受到在世之在的影响',
+            '实验结果会受到与他人共在的影响',
+            '实验结果会受到向死而生的影响',
+            '实验结果会受到畏的影响',
+            '实验结果会受到烦的影响',
+            '实验结果会受到沉沦的影响',
+            '实验结果会受到被抛的影响',
+            '实验结果会受到筹划的影响',
+            '实验结果会受到本真状态的影响',
+            '实验结果会受到非本真状态的影响',
+            '实验结果会受到常人的影响',
+            '实验结果会受到他们的影响',
+            '实验结果会受到闲言的影响',
+            '实验结果会受到好奇的影响',
+            '实验结果会受到两可的影响',
+            '实验结果会受到沉沦态的影响',
+            '实验结果会受到畏之无的影响',
+            '实验结果会受到无何有之乡的影响',
+            '实验结果会受到无的影响',
+            '实验结果会受到虚无的影响',
+            '实验结果会受到存在与时间的影响',
+            '实验结果会受到存在与虚无的影响',
+            '实验结果会受到存在与事件的影响',
+            '实验结果会受到事件的影响',
+            '实验结果会受到增补的影响',
+            '实验结果会受到延异的影响',
+            '实验结果会受到播散的影响',
+            '实验结果会受到踪迹的影响',
+            '实验结果会受到替补的影响',
+            '实验结果会受到补充逻辑的影响',
+            '实验结果会受到在场形而上学的影响',
+            '实验结果会受到逻各斯中心主义的影响',
+            '实验结果会受到语音中心主义的影响',
+            '实验结果会受到男性中心主义的影响',
+            '实验结果会受到菲勒斯中心主义的影响',
+            '实验结果会受到本质主义的影响',
+            '实验结果会受到反本质主义的影响',
+            '实验结果会受到基础主义的影响',
+            '实验结果会受到反基础主义的影响',
+            '实验结果会受到相对主义的影响',
+            '实验结果会受到绝对主义的影响',
+            '实验结果会受到普遍主义的影响',
+            '实验结果会受到特殊主义的影响',
+            '实验结果会受到个体主义的影响',
+            '实验结果会受到整体主义的影响',
+            '实验结果会受到原子主义的影响',
+            '实验结果会受到单子论的影响',
+            '实验结果会受到前定和谐的影响',
+            '实验结果会受到充足理由律的影响',
+            '实验结果会受到矛盾律的影响',
+            '实验结果会受到同一律的影响',
+            '实验结果会受到排中律的影响',
+            '实验结果会受到二值原则的影响',
+            '实验结果会受到多值逻辑的影响',
+            '实验结果会受到模糊逻辑的影响',
+            '实验结果会受到模态逻辑的影响',
+            '实验结果会受到道义逻辑的影响',
+            '实验结果会受到时态逻辑的影响',
+            '实验结果会受到认知逻辑的影响',
+            '实验结果会受到直觉主义逻辑的影响',
+            '实验结果会受到相干逻辑的影响',
+            '实验结果会受到次协调逻辑的影响',
+            '实验结果会受到弗协调逻辑的影响',
+            '实验结果会受到双面真理论的影响',
+            '实验结果会受到爆炸原理的影响',
+            '实验结果会受到归谬法的影响',
+            '实验结果会受到反证法的影响',
+            '实验结果会受到辩证法的影响',
+            '实验结果会受到正题的影响',
+            '实验结果会受到反题的影响',
+            '实验结果会受到合题的影响',
+            '实验结果会受到否定之否定的影响',
+            '实验结果会受到扬弃的影响',
+            '实验结果会受到异化的影响',
+            '实验结果会受到对象化的影响',
+            '实验结果会受到外化的影响',
+            '实验结果会受到内化的影响',
+            '实验结果会受到中介的影响',
+            '实验结果会受到直接性的影响',
+            '实验结果会受到间接性的影响',
+            '实验结果会受到具体普遍性的影响',
+            '实验结果会受到抽象普遍性的影响',
+            '实验结果会受到具体同一性的影响',
+            '实验结果会受到差异辩证法的影响',
+            '实验结果会受到同一辩证法的影响',
+            '实验结果会受到矛盾辩证法的影响',
+            '实验结果会受到主奴辩证法的影响',
+            '实验结果会受到承认的辩证法的影响',
+            '实验结果会受到精神现象学的影响',
+            '实验结果会受到绝对精神的影响',
+            '实验结果会受到绝对理念的影响',
+            '实验结果会受到绝对知识的影响',
+            '实验结果会受到实体即主体的影响',
+            '实验结果会受到凡是现实的都是合乎理性的的影响',
+            '实验结果会受到凡是合乎理性的都是现实的的影响',
+            '实验结果会受到密涅瓦的猫头鹰的影响',
+            '实验结果会受到理性的狡计的影响',
+            '实验结果会受到理性的机巧的影响',
+            '实验结果会受到历史的狡计的影响',
+            '实验结果会受到世界历史的影响',
+            '实验结果会受到世界历史个人的影响',
+            '实验结果会受到历史理性的影响',
+            '实验结果会受到历史决定论的影响',
+            '实验结果会受到历史目的论的影响',
+            '实验结果会受到历史进步论的影响',
+            '实验结果会受到历史循环论的影响',
+            '实验结果会受到历史终结论的影响',
+            '实验结果会受到后历史的影响',
+            '实验结果会受到后现代的影响',
+            '实验结果会受到后现代性的影响',
+            '实验结果会受到后现代主义的影响',
+            '实验结果会受到后结构主义的影响',
+            '实验结果会受到后殖民主义的影响',
+            '实验结果会受到后马克思主义的影响',
+            '实验结果会受到后哲学的影响',
+            '实验结果会受到后形而上学的影响',
+            '实验结果会受到后神学的影响',
+            '实验结果会受到后真相的影响',
+            '实验结果会受到后事实的影响',
+            '实验结果会受到后真理的影响',
+            '实验结果会受到后真相时代的影响',
+            '实验结果会受到后真相政治的影响',
+            '实验结果会受到后真相社会的影响',
+            '实验结果会受到另类事实的影响',
+            '实验结果会受到假新闻的影响',
+            '实验结果会受到虚假信息的影响',
+            '实验结果会受到信息茧房的影响',
+            '实验结果会受到回声室效应的影响',
+            '实验结果会受到过滤气泡的影响',
+            '实验结果会受到算法偏见的影响',
+            '实验结果会受到数据主义的影响',
+            '实验结果会受到数据化的影响',
+            '实验结果会受到量化自我的影响',
+            '实验结果会受到监控资本主义的影响',
+            '实验结果会受到监视资本主义的影响',
+            '实验结果会受到平台资本主义的影响',
+            '实验结果会受到认知资本主义的影响',
+            '实验结果会受到非物质劳动的影响',
+            '实验结果会受到数字劳动的影响',
+            '实验结果会受到情感劳动的影响',
+            '实验结果会受到关系劳动的影响',
+            '实验结果会受到生命劳动的影响',
+            '实验结果会受到活劳动的影响',
+            '实验结果会受到死劳动的影响',
+            '实验结果会受到可变资本的影响',
+            '实验结果会受到不变资本的影响',
+            '实验结果会受到剩余价值的影响',
+            '实验结果会受到绝对剩余价值的影响',
+            '实验结果会受到相对剩余价值的影响',
+            '实验结果会受到超额剩余价值的影响',
+            '实验结果会受到剩余价值率的影响',
+            '实验结果会受到利润率的影响',
+            '实验结果会受到平均利润率的影响',
+            '实验结果会受到利润率下降趋势的影响',
+            '实验结果会受到资本有机构成的影响',
+            '实验结果会受到资本积累的影响',
+            '实验结果会受到资本集中的影响',
+            '实验结果会受到资本积聚的影响',
+            '实验结果会受到资本循环的影响',
+            '实验结果会受到资本周转的影响',
+            '实验结果会受到固定资本的影响',
+            '实验结果会受到流动资本的影响',
+            '实验结果会受到货币资本的影响',
+            '实验结果会受到生产资本的影响',
+            '实验结果会受到商品资本的影响',
+            '实验结果会受到产业资本的影响',
+            '实验结果会受到商业资本的影响',
+            '实验结果会受到借贷资本的影响',
+            '实验结果会受到生息资本的影响',
+            '实验结果会受到虚拟资本的影响',
+            '实验结果会受到金融资本的影响',
+            '实验结果会受到金融化的影响',
+            '实验结果会受到新自由主义的影响',
+            '实验结果会受到新保守主义的影响',
+            '实验结果会受到新帝国主义的影响',
+            '实验结果会受到新殖民主义的影响',
+            '实验结果会受到新种族主义的影响',
+            '实验结果会受到新性别主义的影响',
+            '实验结果会受到新异性恋主义的影响',
+            '实验结果会受到新父权制的影响',
+            '实验结果会受到新资本主义的影响',
+            '实验结果会受到晚期资本主义的影响',
+            '实验结果会受到跨国资本主义的影响',
+            '实验结果会受到全球资本主义的影响',
+            '实验结果会受到帝国的影响',
+            '实验结果会受到诸众的影响',
+            '实验结果会受到生命政治生产的影响',
+            '实验结果会受到非物质劳动霸权的影响',
+            '实验结果会受到认知资本主义的影响',
+            '实验结果会受到数字资本主义的影响',
+            '实验结果会受到平台资本主义的影响',
+            '实验结果会受到监控资本主义的影响',
+            '实验结果会受到算法治理的影响',
+            '实验结果会受到数据治理的影响',
+            '实验结果会受到智能治理的影响',
+            '实验结果会受到技术治理的影响',
+            '实验结果会受到治理术的影响',
+            '实验结果会受到国家治理的影响',
+            '实验结果会受到社会治理的影响',
+            '实验结果会受到基层治理的影响',
+            '实验结果会受到城市治理的影响',
+            '实验结果会受到全球治理的影响',
+            '实验结果会受到区域治理的影响',
+            '实验结果会受到环境治理的影响',
+            '实验结果会受到生态治理的影响',
+            '实验结果会受到风险治理的影响',
+            '实验结果会受到危机治理的影响',
+            '实验结果会受到应急治理的影响',
+            '实验结果会受到常态化治理的影响',
+            '实验结果会受到运动式治理的影响',
+            '实验结果会受到项目制治理的影响',
+            '实验结果会受到网格化治理的影响',
+            '实验结果会受到精细化治理的影响',
+            '实验结果会受到精准治理的影响',
+            '实验结果会受到智慧治理的影响',
+            '实验结果会受到数字治理的影响',
+            '实验结果会受到电子政务的影响',
+            '实验结果会受到数字政府的影响',
+            '实验结果会受到智慧政府的影响',
+            '实验结果会受到服务型政府的影响',
+            '实验结果会受到法治政府的影响',
+            '实验结果会受到有限政府的影响',
+            '实验结果会受到有效政府的影响',
+            '实验结果会受到责任政府的影响',
+            '实验结果会受到透明政府的影响',
+            '实验结果会受到廉洁政府的影响',
+            '实验结果会受到高效政府的影响',
+            '实验结果会受到创新政府的影响',
+            '实验结果会受到学习型政府的影响',
+            '实验结果会受到创新型政府的影响',
+            '实验结果会受到服务型政府的影响',
+            '实验结果会受到企业家政府的影响',
+            '实验结果会受到企业化政府的影响',
+            '实验结果会受到市场化政府的影响',
+            '实验结果会受到新公共管理的影响',
+            '实验结果会受到新公共服务的影响',
+            '实验结果会受到新公共行政的影响',
+            '实验结果会受到公共治理的影响',
+            '实验结果会受到公共管理的影响',
+            '实验结果会受到公共行政的影响',
+            '实验结果会受到公共政策的影响',
+            '实验结果会受到公共利益的影响',
+            '实验结果会受到公共价值的影响',
+            '实验结果会受到公共理性的影响',
+            '实验结果会受到公共领域的影响',
+            '实验结果会受到公共空间的影响',
+            '实验结果会受到公共产品的影响',
+            '实验结果会受到公共服务的影响',
+            '实验结果会受到公共物品的影响',
+            '实验结果会受到公共选择的影响',
+            '实验结果会受到公共选择理论的影响',
+            '实验结果会受到理性选择的影响',
+            '实验结果会受到理性选择理论的影响',
+            '实验结果会受到集体行动的影响',
+            '实验结果会受到集体行动的逻辑的影响',
+            '实验结果会受到搭便车的影响',
+            '实验结果会受到公地悲剧的影响',
+            '实验结果会受到囚徒困境的影响',
+            '实验结果会受到零和博弈的影响',
+            '实验结果会受到非零和博弈的影响',
+            '实验结果会受到正和博弈的影响',
+            '实验结果会受到负和博弈的影响',
+            '实验结果会受到纳什均衡的影响',
+            '实验结果会受到帕累托最优的影响',
+            '实验结果会受到帕累托改进的影响',
+            '实验结果会受到卡尔多-希克斯效率的影响',
+            '实验结果会受到潜在帕累托改进的影响',
+            '实验结果会受到社会选择的影响',
+            '实验结果会受到社会选择理论的影响',
+            '实验结果会受到阿罗不可能定理的影响',
+            '实验结果会受到多数票规则的影响',
+            '实验结果会受到孔多塞悖论的影响',
+            '实验结果会受到投票悖论的影响',
+            '实验结果会受到中位投票人定理的影响',
+            '实验结果会受到唐斯模型的影响',
+            '实验结果会受到理性无知的影响',
+            '实验结果会受到理性冷漠的影响',
+            '实验结果会受到理性弃权的影响',
+            '实验结果会受到政治冷漠的影响',
+            '实验结果会受到政治参与的影响',
+            '实验结果会受到政治效能感的影响',
+            '实验结果会受到政治信任的影响',
+            '实验结果会受到政治合法性的影响',
+            '实验结果会受到政治正当性的影响',
+            '实验结果会受到政治权威的影响',
+            '实验结果会受到政治权力的影响',
+            '实验结果会受到政治权利的影响',
+            '实验结果会受到政治自由的影响',
+            '实验结果会受到政治平等的影响',
+            '实验结果会受到政治正义的影响',
+            '实验结果会受到政治民主的影响',
+            '实验结果会受到政治发展的影响',
+            '实验结果会受到政治现代化的影响',
+            '实验结果会受到政治变迁的影响',
+            '实验结果会受到政治转型的影响',
+            '实验结果会受到政治转轨的影响',
+            '实验结果会受到政治过渡的影响',
+            '实验结果会受到政治稳定的影响',
+            '实验结果会受到政治秩序的影响',
+            '实验结果会受到政治制度化的影响',
+            '实验结果会受到政治衰败的影响',
+            '实验结果会受到政治腐化的影响',
+            '实验结果会受到政治腐败的影响',
+            '实验结果会受到政治俘获的影响',
+            '实验结果会受到政治寻租的影响',
+            '实验结果会受到政治租金的影响',
+            '实验结果会受到政治市场的影响',
+            '实验结果会受到政治企业家的影响',
+            '实验结果会受到政治供给的影响',
+            '实验结果会受到政治需求的影响',
+            '实验结果会受到政治均衡的影响',
+            '实验结果会受到政治周期的影响',
+            '实验结果会受到政治商业周期的影响',
+            '实验结果会受到机会主义的影响',
+            '实验结果会受到道德风险的影响',
+            '实验结果会受到逆向选择的影响',
+            '实验结果会受到信号传递的影响',
+            '实验结果会受到信号甄别的影响',
+            '实验结果会受到委托-代理问题的影响',
+            '实验结果会受到代理成本的影响',
+            '实验结果会受到交易成本的影响',
+            '实验结果会受到交易费用的影响',
+            '实验结果会受到科斯定理的影响',
+            '实验结果会受到产权理论的影响',
+            '实验结果会受到契约理论的影响',
+            '实验结果会受到不完全契约的影响',
+            '实验结果会受到关系契约的影响',
+            '实验结果会受到隐性契约的影响',
+            '实验结果会受到显性契约的影响',
+            '实验结果会受到自我执行契约的影响',
+            '实验结果会受到声誉机制的影响',
+            '实验结果会受到信任机制的影响',
+            '实验结果会受到社会资本的影响',
+            '实验结果会受到社会网络的影响',
+            '实验结果会受到嵌入性的影响',
+            '实验结果会受到弱关系的影响',
+            '实验结果会受到强关系的影响',
+            '实验结果会受到结构洞的影响',
+            '实验结果会受到社会资源的影响',
+            '实验结果会受到社会分层的影响',
+            '实验结果会受到社会流动的影响',
+            '实验结果会受到社会排斥的影响',
+            '实验结果会受到社会整合的影响',
+            '实验结果会受到社会团结的影响',
+            '实验结果会受到社会凝聚力的影响',
+            '实验结果会受到社会共识的影响',
+            '实验结果会受到社会冲突的影响',
+            '实验结果会受到社会矛盾的影响',
+            '实验结果会受到社会问题的影响',
+            '实验结果会受到社会风险的影响',
+            '实验结果会受到社会危机的影响',
+            '实验结果会受到社会动荡的影响',
+            '实验结果会受到社会失序的影响',
+            '实验结果会受到社会失范的影响',
+            '实验结果会受到越轨行为的影响',
+            '实验结果会受到偏差行为的影响',
+            '实验结果会受到社会控制的影响',
+            '实验结果会受到社会规范的影响',
+            '实验结果会受到社会习俗的影响',
+            '实验结果会受到社会道德的影响',
+            '实验结果会受到社会伦理的影响',
+            '实验结果会受到社会价值的影响',
+            '实验结果会受到社会文化的影响',
+            '实验结果会受到社会结构的影响',
+            '实验结果会受到社会制度的影响',
+            '实验结果会受到社会组织的影响',
+            '实验结果会受到社会系统的影响',
+            '实验结果会受到社会功能的影响',
+            '实验结果会受到社会角色的影响',
+            '实验结果会受到社会互动的影响',
+            '实验结果会受到社会交往的影响',
+            '实验结果会受到社会关系的影响',
+            '实验结果会受到社会资本的影响',
+            '实验结果会受到社会支持的影响',
+            '实验结果会受到社会救助的影响',
+            '实验结果会受到社会保障的影响',
+            '实验结果会受到社会福利的影响',
+            '实验结果会受到社会服务的影响',
+            '实验结果会受到社会工作的影响',
+            '实验结果会受到社会政策的影响',
+            '实验结果会受到社会行政的影响',
+            '实验结果会受到社会管理的影响',
+            '实验结果会受到社会治理的影响',
+            '实验结果会受到社会建设的影响',
+            '实验结果会受到社会发展的影响',
+            '实验结果会受到社会进步的影响',
+            '实验结果会受到社会变迁的影响',
+            '实验结果会受到社会转型的影响',
+            '实验结果会受到社会转轨的影响',
+            '实验结果会受到社会过渡的影响',
+            '实验结果会受到社会现代化的影响',
+            '实验结果会受到社会城市化的影响',
+            '实验结果会受到社会工业化的影响',
+            '实验结果会受到社会信息化的影响',
+            '实验结果会受到社会数字化的影响',
+            '实验结果会受到社会智能化的影响',
+            '实验结果会受到社会网络化的影响',
+            '实验结果会受到社会平台化的影响',
+            '实验结果会受到社会算法化的影响',
+            '实验结果会受到社会数据化的影响',
+            '实验结果会受到社会量化的影响',
+            '实验结果会受到社会可计算化的影响',
+            '实验结果会受到社会可预测性的影响',
+            '实验结果会受到社会可控制性的影响',
+            '实验结果会受到社会可治理性的影响',
+            '实验结果会受到社会工程的影响',
+            '实验结果会受到社会设计的影响',
+            '实验结果会受到社会规划的影响',
+            '实验结果会受到社会实验的影响',
+            '实验结果会受到社会试点的影响',
+            '实验结果会受到社会示范的影响',
+            '实验结果会受到社会创新的影响',
+            '实验结果会受到社会创业的影响',
+            '实验结果会受到社会企业的影响',
+            '实验结果会受到社会组织的影响',
+            '实验结果会受到社会团体的影响',
+            '实验结果会受到社会中介的影响',
+            '实验结果会受到社会第三部门的影响',
+            '实验结果会受到社会非营利组织的影响',
+            '实验结果会受到社会非政府组织的影响',
+            '实验结果会受到社会公民社会的影响',
+            '实验结果会受到社会市民社会的影响',
+            '实验结果会受到社会公共领域的影响',
+            '实验结果会受到社会公共空间的影响',
+            '实验结果会受到社会公共舆论的影响',
+            '实验结果会受到社会公共意见的影响',
+            '实验结果会受到社会公共理性的影响',
+            '实验结果会受到社会公共价值的影响',
+            '实验结果会受到社会公共利益的影响',
+            '实验结果会受到社会公共产品的影响',
+            '实验结果会受到社会公共服务的影响',
+            '实验结果会受到社会公共物品的影响',
+            '实验结果会受到社会公共政策的影响',
+            '实验结果会受到社会公共管理的影响',
+            '实验结果会受到社会公共行政的影响',
+            '实验结果会受到社会公共治理的影响',
+            '实验结果会受到社会公共事务的影响',
+            '实验结果会受到社会公共问题的影响',
+            '实验结果会受到社会公共危机的影响',
+            '实验结果会受到社会公共风险的影响',
+            '实验结果会受到社会公共安全的影响',
+            '实验结果会受到社会公共卫生的影响',
+            '实验结果会受到社会公共教育的影响',
+            '实验结果会受到社会公共文化的影响',
+            '实验结果会受到社会公共交通的影响',
+            '实验结果会受到社会公共设施的影响',
+            '实验结果会受到社会公共资源的影响',
+            '实验结果会受到社会公共环境的影响',
+            '实验结果会受到社会公共生态的影响',
+            '实验结果会受到社会公共福祉的影响',
+            '实验结果会受到社会公共善的影响',
+            '实验结果会受到社会公共正义的影响',
+            '实验结果会受到社会公共公平的影响',
+            '实验结果会受到社会公共平等的影响',
+            '实验结果会受到社会公共自由的影响',
+            '实验结果会受到社会公共民主的影响',
+            '实验结果会受到社会公共法治的影响',
+            '实验结果会受到社会公共秩序的影响',
+            '实验结果会受到社会公共稳定的影响',
+            '实验结果会受到社会公共和谐的影响',
+            '实验结果会受到社会公共幸福的影响',
+            '实验结果会受到社会公共美好的影响',
+            '实验结果会受到社会公共理想的影响',
+            '实验结果会受到社会公共愿景的影响',
+            '实验结果会受到社会公共目标的影响',
+            '实验结果会受到社会公共使命的影响',
+            '实验结果会受到社会公共责任的影响',
+            '实验结果会受到社会公共担当的影响'
+        ];
+
+        // ============== 工具函数 ==============
+
+        function randomChoice(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function randomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function randomFloat(min, max, decimals = 2) {
+            const num = Math.random() * (max - min) + min;
+            return parseFloat(num.toFixed(decimals));
+        }
+
+        function randomExponential(base = 10) {
+            return Math.floor(Math.pow(base, Math.random() * 3 + 1));
+        }
+
+        // ============== 关键词处理 ==============
+
+        function processKeywords(input) {
+            let keywords = input.trim().split(/\s+/).filter(k => k.length > 0);
+            
+            // 如果关键词不足3个，从词库中随机补充
+            while (keywords.length < 3) {
+                const poolNames = Object.keys(KEYWORD_POOLS);
+                const poolName = randomChoice(poolNames);
+                const word = randomChoice(KEYWORD_POOLS[poolName]);
+                if (!keywords.includes(word)) {
+                    keywords.push(word);
+                }
+            }
+            
+            return keywords.slice(0, 3);
+        }
+
+        // ============== 标题生成 ==============
+
+        function generateTitle(kw1, kw2, kw3) {
+            const templates = [
+                `基于${kw1}的${kw2}研究：${kw3}视角`,
+                `${kw2}的${kw3}效应：基于${kw1}的分析`,
+                `从${kw1}看${kw2}的${kw3}特性`,
+                `${kw1}视角下的${kw2}：${kw3}的作用`,
+                `论${kw1}与${kw2}的${kw3}相关性`,
+                `${kw1}诱导的${kw2}${kw3}机制研究`,
+                `${kw2}中的${kw1}效应：${kw3}理论解释`,
+                `基于${kw3}的${kw1}与${kw2}协变研究`,
+                `${kw1}、${kw2}与${kw3}的交叉学科研究`,
+                `${kw2}的${kw1}调控：${kw3}模型`
+            ];
+            return randomChoice(templates);
+        }
+
+        // ============== 摘要生成 ==============
+
+        function generateAbstract(kw1, kw2, kw3, level) {
+            const intensity = level / 10;
+            
+            let abstract = '';
+            
+            // 研究背景
+            abstract += `针对${randomChoice(['长期以来被忽视的', '学术界普遍关注的', '具有重要理论意义的', '充满争议的'])}${kw2}问题，本研究突破传统${randomChoice(['理论框架', '研究范式', '分析方法', '实验手段'])}的局限，首次引入"${kw1}${randomChoice(['诱导', '驱动', '调控', '介导'])}${kw3}"模型。`;
+            
+            // 研究方法
+            abstract += `通过对${randomInt(10, 100)}组${randomChoice(['标准实验周期', '对照实验', '观测样本', '数值模拟'])}的${randomChoice(['系统观测', '深入分析', '精确测量', '定量研究'])}，结合${randomChoice(RESEARCH_METHODS)}、${randomChoice(RESEARCH_METHODS)}与${randomChoice(RESEARCH_METHODS)}，`;
+            
+            // 研究发现
+            abstract += `发现${kw1}与${kw2}之间存在显著的${randomChoice(['非线性', '非单调', '非局域', '非平衡'])}${randomChoice(['共振', '耦合', '关联', '协变'])}关系（r = ${randomFloat(-0.95, 0.95, 2)}, p < ${randomChoice(['0.001', '0.0001', '1e-5', '1e-6'])}），`;
+            
+            // 机制解释
+            abstract += `且该关系在${randomChoice(['特定条件下', '临界温度附近', '强场作用下', '量子极限'])}被${randomChoice(['显著增强', '明显抑制', '完全改变', '量子化'])}。`;
+            
+            // 理论贡献
+            if (intensity > 0.3) {
+                abstract += `进一步，本研究构建了"${kw1}-${kw2}联合${randomChoice(['熵', '能谱', '相图', '态密度'])}"，并引入${randomChoice(['量子场论', '弦论', '膜宇宙模型', '拓扑场论'])}与${randomChoice(['分数统计', '非交换几何', '非对易时空', '扭量理论'])}，证明${kw2}并未${randomChoice(['消失', '改变', '跃迁', '隧穿'])}，而是通过${randomChoice(['质能转化', '维度紧致化', '量子退相干', '拓扑相变'])}机制转化为${randomChoice(['能量', '信息', '熵', '暗物质'])}。`;
+            }
+            
+            // 意外发现
+            if (intensity > 0.6) {
+                abstract += `此外，研究还意外发现${randomChoice(['实验员心情', '天气状况', '星座运势', '午餐吃什么'])}与实验结果存在${randomInt(12, 48)}小时的${randomChoice(['超日同步', '相位锁定', '因果关联', '量子纠缠'])}，提示存在一种${randomChoice(['跨尺度', '跨维度', '跨物种', '跨宇宙'])}的${randomChoice(['宏观量子效应', '非局域关联', '长程有序', '自组织临界'])}现象。`;
+            }
+            
+            // 应用价值
+            abstract += `本发现为${randomChoice(['减少', '优化', '调控', '预测'])}${kw2}提供了基于${kw1}选择与${kw3}规避的切实干预方案，并初步勾勒了统一解释${randomChoice(['日常神秘现象', '量子-经典过渡', '暗物质本质', '时间箭头'])}的"大统一${randomChoice(['早餐', '奶茶', '螺蛳粉', '煎饼果子'])}理论"。`;
+            
+            return abstract;
+        }
+
+        // ============== 关键词生成 ==============
+
+        function generateKeywords(kw1, kw2, kw3) {
+            const extraKeywords = [
+                randomChoice(PHYSICAL_QUANTITIES),
+                randomChoice(PHYSICAL_QUANTITIES),
+                randomChoice(['非平衡态', '临界现象', '自组织', '涌现行为', '分形结构', '混沌动力学', '量子相干', '拓扑保护'])
+            ];
+            
+            return [kw1, kw2, kw3, ...extraKeywords];
+        }
+
+        // ============== 作者和机构生成 ==============
+
+        function generateAuthorsAndDepts(nAuthors) {
+            const authors = [];
+            const depts = [];
+            
+            const nDepts = randomInt(2, 4);
+            for (let i = 0; i < nDepts; i++) {
+                depts.push(randomChoice(UNIVERSITIES));
+            }
+            
+            for (let i = 0; i < nAuthors; i++) {
+                authors.push(randomChoice(AUTHOR_NAMES));
+            }
+            
+            return { authors, departments: depts };
+        }
+
+        // ============== 章节生成 ==============
+
+        const CHAPTER_STRUCTURES = {
+            journal: [
+                { title: '引言', sections: ['研究背景与意义', '研究现状与问题', '本文主要贡献', '论文组织结构'] },
+                { title: '相关理论与文献综述', sections: ['经典理论框架', '最新研究进展', '存在的问题与争议', '本文研究切入点'] },
+                { title: '理论模型与方法', sections: ['基本假设与定义', '理论模型构建', '数学推导', '数值方法'] },
+                { title: '实验设计与方法', sections: ['实验材料与设备', '实验方案设计', '实验流程', '数据处理方法'] },
+                { title: '结果与分析', sections: ['主要实验结果', '参数影响分析', '对比验证实验', '机制讨论'] },
+                { title: '讨论', sections: ['结果的理论意义', '与现有研究的对比', '研究局限性', '未来研究方向'] },
+                { title: '结论', sections: ['主要结论', '研究创新点', '应用前景展望'] }
+            ],
+            master: [
+                { title: '绪论', sections: ['研究背景与意义', '国内外研究现状', '研究内容与方法', '论文组织结构'] },
+                { title: '文献综述', sections: ['相关理论基础', '国内外研究进展', '研究述评', '本文研究方向'] },
+                { title: '理论基础', sections: ['基本概念', '核心理论', '数学工具', '相关方法'] },
+                { title: '研究方法', sections: ['总体研究方案', '关键技术', '实验设计', '数据采集与处理'] },
+                { title: '实验结果与分析', sections: ['实验结果展示', '结果分析与讨论', '参数敏感性分析', '对比实验'] },
+                { title: '综合讨论', sections: ['理论解释', '实践意义', '研究局限', '未来展望'] },
+                { title: '结论与展望', sections: ['主要结论', '研究创新点', '不足与展望', '后续工作建议'] }
+            ],
+            doctor: [
+                { title: '绪论', sections: ['研究背景', '研究意义', '问题提出', '研究目标与内容', '论文组织结构'] },
+                { title: '文献综述', sections: ['国外研究现状', '国内研究现状', '研究述评', '存在的问题', '本文研究方向'] },
+                { title: '理论基础', sections: ['基本概念', '经典理论', '现代发展', '数学工具'] },
+                { title: '理论模型构建', sections: ['基本假设', '模型建立', '理论推导', '数值方法'] },
+                { title: '实验一：基础验证', sections: ['实验目的', '实验设计', '实验过程', '结果与分析'] },
+                { title: '实验二：参数研究', sections: ['实验目的', '实验设计', '实验过程', '结果与分析'] },
+                { title: '实验三：机制探索', sections: ['实验目的', '实验设计', '实验过程', '结果与分析'] },
+                { title: '综合分析与讨论', sections: ['结果综合分析', '理论解释', '与现有研究对比', '研究贡献', '局限性分析'] },
+                { title: '结论与展望', sections: ['主要结论', '研究创新点', '理论意义', '应用价值', '未来研究方向'] }
+            ],
+            conference: [
+                { title: '引言', sections: ['研究背景', '研究问题', '本文贡献'] },
+                { title: '相关工作', sections: ['已有研究', '存在问题', '本文方法'] },
+                { title: '方法', sections: ['总体架构', '核心算法', '实现细节'] },
+                { title: '实验', sections: ['实验设置', '实验结果', '对比分析'] },
+                { title: '结论', sections: ['总结', '未来工作'] }
+            ]
+        };
+
+        // ============== 段落生成 ==============
+
+        function generateParagraph(kw1, kw2, kw3, sectionTitle, chapterTitle, level) {
+            const intensity = level / 10;
+            const sentences = [];
+            const usedTemplates = new Set(); // 记录已使用的模板类型，避免重复
+
+            // 开头句模板生成函数
+            function getOpenings() {
+                return [
+                    // 类型1：重要性阐述
+                    `${sectionTitle}是${chapterTitle}的${randomChoice(['核心内容', '重要组成', '关键部分', '理论基础', '方法支撑', '前沿领域', '热点问题', '难点所在'])}，对理解${kw1}与${kw2}的关系具有${randomChoice(['重要', '深远', '关键', '决定性', '基础性', '开创性'])}意义。`,
+                    `在${chapterTitle}的研究框架中，${sectionTitle}始终占据着${randomChoice(['核心', '重要', '关键', '特殊', '独特'])}地位。`,
+                    `${sectionTitle}作为连接${kw1}与${kw3}的桥梁，在本研究中扮演着${randomChoice(['关键', '重要', '核心', '特殊'])}角色。`,
+                    `深入研究${sectionTitle}，对于揭示${kw2}的${randomChoice(['本质', '内在机制', '演化规律', '物理本质'])}具有重要的理论价值。`,
+                    
+                    // 类型2：研究现状
+                    `关于${kw2}的${sectionTitle}，学术界一直存在${randomChoice(['广泛讨论', '诸多争议', '不同看法', '多种观点', '较大分歧', '激烈争论'])}。`,
+                    `${sectionTitle}的研究可以追溯到${randomInt(1900, 2000)}年代，当时${randomChoice(AUTHOR_NAMES)}等人首次提出了${kw1}的概念。`,
+                    `近${randomInt(10, 30)}年来，${sectionTitle}的研究取得了${randomChoice(['长足进展', '显著成果', '突破性进展', '重要发现'])}。`,
+                    `尽管${sectionTitle}已经被研究了多年，但仍有许多${randomChoice(['关键问题', '未解之谜', '核心机制', '基本问题'])}有待澄清。`,
+                    `随着${randomChoice(['实验技术', '理论方法', '计算能力', '观测手段'])}的进步，${sectionTitle}的研究进入了一个新的阶段。`,
+                    
+                    // 类型3：引入过渡
+                    `在深入讨论${sectionTitle}之前，有必要先明确几个基本概念。`,
+                    `为了更好地理解后续内容，本节首先对${sectionTitle}进行简要介绍。`,
+                    `本章将重点围绕${sectionTitle}展开${randomChoice(['深入', '系统', '全面', '详细'])}讨论。`,
+                    `接下来，我们将从${randomChoice(['理论', '实验', '数值', '分析'])}角度探讨${sectionTitle}。`,
+                    
+                    // 类型4：问题导向
+                    `${kw2}的${sectionTitle}一直是${randomChoice(['学术界', '工业界', '理论界', '实验界'])}关注的焦点问题。`,
+                    `如何准确${randomChoice(['描述', '预测', '控制', '解释'])}${kw1}对${kw2}的影响，是${sectionTitle}的核心问题。`,
+                    `${sectionTitle}的核心挑战在于如何处理${kw1}与${kw3}之间的${randomChoice(['耦合', '相互作用', '竞争', '协同'])}效应。`,
+                    
+                    // 类型5：本文工作
+                    `本节将重点介绍我们在${sectionTitle}方面的${randomChoice(['最新进展', '研究成果', '主要工作', '创新点'])}。`,
+                    `针对${sectionTitle}存在的问题，本文提出了一种新的${randomChoice(['理论模型', '实验方法', '分析框架', '计算方案'])}。`,
+                    `与现有研究不同，本文从${kw3}的角度重新审视了${sectionTitle}。`
+                ];
+            }
+
+            // 理论阐述模板生成函数
+            function getTheorySentences() {
+                return [
+                    // 理论框架类
+                    `根据${randomChoice(['经典理论', '量子力学', '统计物理', '热力学第二定律', '朗道理论', '金兹堡-朗道方程', '重整化群理论', '标度理论', '对称性原理', '守恒定律'])}，${kw1}的${randomChoice(['演化', '涨落', '输运', '弛豫', '相变', '临界行为', '动力学', '热力学'])}过程可以用${randomChoice(['偏微分方程', '积分方程', '微分方程组', '变分原理', '哈密顿量', '拉格朗日量', '配分函数', '密度矩阵'])}来描述。`,
+                    
+                    // 尺度分析类
+                    `从${randomChoice(['微观', '宏观', '介观', '纳观', '原子尺度', '分子尺度', '连续介质'])}尺度来看，${kw2}的${randomChoice(['结构', '性质', '行为', '响应', '演化', '稳定性', '相变'])}本质上是由${kw1}的${randomChoice(['集体行为', '统计分布', '量子态', '相互作用', '关联效应', '涨落', '相干性'])}决定的。`,
+                    
+                    // 原理定律类
+                    `按照${randomChoice(['对称性原理', '守恒定律', '最小作用量原理', '熵增原理', '能量守恒', '动量守恒', '角动量守恒', '电荷守恒', '刘维尔定理', '细致平衡原理'])}，系统会自发地趋向于${randomChoice(['能量最低', '熵最大', '自由能最小', '最概然', '平衡态', '稳态', '基态'])}的状态。`,
+                    
+                    // 条件状态类
+                    `在${randomChoice(['平衡态', '非平衡态', '稳态', '瞬态', '临界状态', '亚稳态', '激发态', '基态'])}条件下，${kw1}与${kw2}之间满足${randomChoice(['线性响应', '非线性耦合', '标度关系', '幂律分布', '指数关系', '对数关系', '饱和关系'])}。`,
+                    
+                    // 模型构建类
+                    `为了描述这一现象，我们建立了一个基于${kw1}和${kw2}的${randomChoice(['有效模型', '唯象模型', '微观模型', '连续模型', '离散模型', '平均场模型'])}。`,
+                    `该理论的核心假设是${kw3}可以作为${randomChoice(['序参量', '控制参数', '耦合常数', '特征尺度', '特征时间'])}来描述系统的行为。`,
+                    
+                    // 数学描述类
+                    `从数学上看，${kw1}的运动方程可以表示为一个${randomChoice(['非线性', '线性', '耦合', '耗散', '保守'])}系统，其解具有${randomChoice(['丰富的', '复杂的', '多样的', '奇异的'])}动力学行为。`,
+                    `通过引入${randomChoice(['无量纲化', '标度变换', '坐标变换', '正则变换'])}，可以将问题简化为${randomInt(1, 5)}个独立参数的函数。`,
+                    
+                    // 物理图像类
+                    `物理上，这一现象可以理解为${kw1}与${kw2}之间通过${kw3}发生了${randomChoice(['能量交换', '动量传递', '信息传递', '相位耦合', '量子纠缠', '经典关联'])}。`,
+                    `直观地说，${kw2}的变化相当于在${kw1}的${randomChoice(['势能面', '能谱', '相空间', '参数空间'])}中引入了一个${randomChoice(['扰动', '调制', '势垒', '势阱'])}。`
+                ];
+            }
+
+            // 实验描述模板生成函数
+            function getExperimentSentences() {
+                return [
+                    // 实验设计类
+                    `为了验证这一假设，我们设计了${randomInt(3, 10)}组对照实验，系统地改变了${randomChoice(['温度', '压力', '浓度', '场强', '频率', '功率', '时间', '角度'])}等参数。`,
+                    `实验采用了${randomChoice(['控制变量法', '正交设计', '响应面法', '田口方法', '全因子设计'])}，以确保结果的${randomChoice(['可靠性', '准确性', '可重复性', '统计显著性'])}。`,
+                    
+                    // 设备技术类
+                    `实验采用了${randomChoice(['高精度', '高分辨率', '高灵敏度', '高速', '原位', '实时', '非接触式'])}测量设备，采样频率达到${randomExponential()} Hz。`,
+                    `我们使用了${randomChoice(['原子力显微镜', '扫描隧道显微镜', '透射电子显微镜', 'X射线衍射仪', '拉曼光谱仪', '荧光光谱仪', '核磁共振仪'])}对样品进行了表征。`,
+                    
+                    // 环境条件类
+                    `所有实验均在${randomChoice(['恒温恒湿', '超净', '真空', '低温', '高温', '高压', '强磁场'])}条件下进行，每个条件重复测量${randomInt(5, 20)}次以确保统计显著性。`,
+                    `为了排除环境干扰，实验装置放置在${randomChoice(['防震台', '屏蔽室', '恒温箱', '真空腔'])}中。`,
+                    
+                    // 样品制备类
+                    `实验样品采用${randomChoice(['溶胶-凝胶法', '水热法', '气相沉积', '分子束外延', '电化学沉积', '机械合金化'])}方法制备，样品尺寸约为${randomFloat(1, 1000, 2)} ${randomChoice(['nm', 'μm', 'mm', 'cm'])}。`,
+                    `样品在测量前经过了${randomChoice(['退火', '淬火', '抛光', '清洗', '镀膜'])}处理，以确保表面质量。`,
+                    
+                    // 数据处理类
+                    `数据处理采用了${randomChoice(RESEARCH_METHODS)}方法，对原始数据进行了${randomChoice(['滤波', '降噪', '归一化', '基线校正', '平滑', '拟合', '傅里叶变换', '小波分析'])}处理。`,
+                    `为了提高数据质量，我们采用了${randomChoice(['多次平均', '锁相放大', '相关检测', '差分测量'])}技术。`,
+                    
+                    // 实验流程类
+                    `实验过程中，首先${randomChoice(['制备样品', '校准仪器', '设置参数', '建立基线'])}，然后${randomChoice(['施加激励', '改变条件', '开始测量', '采集数据'])}，最后${randomChoice(['分析结果', '处理数据', '验证结论', '重复实验'])}。`,
+                    `每个实验周期持续约${randomInt(1, 24)}小时，期间${randomChoice(['实时监测', '定时采样', '连续记录', '间歇测量'])}各项参数。`
+                ];
+            }
+
+            // 结果描述模板生成函数
+            function getResultSentences() {
+                return [
+                    // 总体结论类
+                    `实验结果表明，${kw1}对${kw2}具有${randomChoice(['显著的', '明显的', '微妙的', '出乎意料的', '复杂的', '非线性的', '多尺度的'])}影响。`,
+                    `我们的研究发现，${kw1}与${kw2}之间存在${randomChoice(['正相关', '负相关', '非线性相关', '非单调相关', '周期性相关'])}关系。`,
+                    
+                    // 具体现象类
+                    `我们观察到，当${randomChoice(['温度', '压力', '浓度', '场强', '频率'])}达到${randomFloat(0.1, 1000, 2)}时，${kw2}会发生${randomChoice(['突变', '相变', '共振', '击穿', '饱和', '转变', '分岔', '混沌'])}现象。`,
+                    `在${kw3}的作用下，${kw2}表现出${randomChoice(['反常行为', '奇异特性', '量子效应', '非单调变化', '滞后效应', '记忆效应'])}。`,
+                    
+                    // 定量结果类
+                    `定量分析显示，两者之间的相关系数高达${randomFloat(0.8, 0.999, 3)}，表明存在${randomChoice(['强相关', '显著相关', '高度显著相关', '极强相关', '统计显著相关'])}。`,
+                    `实验测得的${kw2}的${randomChoice(['临界值', '特征值', '阈值', '饱和值', '共振频率'])}约为${randomFloat(0.001, 1000, 3)}，与理论预测${randomChoice(['基本一致', '高度吻合', '存在偏差', '完全不同'])}。`,
+                    
+                    // 对比验证类
+                    `这一结果与${randomChoice(['理论预测', '数值模拟', '前期研究', '直觉判断', '实验预期', '文献报道'])}${randomChoice(['高度一致', '基本吻合', '存在偏差', '完全不同', '部分一致', '趋势相同'])}。`,
+                    `与${randomChoice(['传统方法', '现有技术', '前人工作', '其他方案'])}相比，我们的方法具有${randomChoice(['更高的精度', '更广的适用范围', '更低的计算成本', '更强的鲁棒性', '更好的稳定性'])}。`,
+                    
+                    // 意外发现类
+                    `令人意外的是，在${randomChoice(['高温', '低温', '高压', '强场', '低频', '高频'])}条件下，${kw2}表现出了${randomChoice(['完全不同', '出乎意料', '反常', '奇异'])}的行为。`,
+                    `实验中还观察到了一些${randomChoice(['有趣的', '奇怪的', '意外的', '反常的'])}现象，例如${randomChoice(['滞后回线', '记忆效应', '多稳态', '振荡行为'])}等。`
+                ];
+            }
+
+            // 机制讨论模板生成函数
+            function getMechanismSentences() {
+                return [
+                    // 机制假说类
+                    `关于这一现象的物理机制，我们认为可能与${randomChoice(['量子隧穿', '能级杂化', '界面态', '缺陷态', '声子散射', '电子-声子相互作用', '自旋-轨道耦合', '量子干涉', '多体效应', '拓扑保护'])}有关。`,
+                    `进一步分析表明，${kw3}在其中扮演了${randomChoice(['关键媒介', '催化剂', '抑制剂', '调控因子', '桥梁', '中介'])}的角色。`,
+                    
+                    // 理论解释类
+                    `这一效应可以用${randomChoice(['朗道相变理论', '金兹堡-朗道方程', '重整化群', '标度理论', '平均场理论', '有效场论', '线性响应理论', '涨落-耗散定理'])}来解释。`,
+                    `从${randomChoice(['热力学', '动力学', '统计力学', '量子力学', '经典力学'])}的角度来看，这一现象的本质是${randomChoice(['能量最小化', '熵最大化', '对称性破缺', '相变', '临界现象', '自组织'])}的结果。`,
+                    
+                    // 微观机制类
+                    `我们推测，其微观机制可能涉及${randomChoice(['电子-声子相互作用', '自旋-轨道耦合', '量子干涉', '多体效应', '缺陷散射', '界面散射', '能带结构', '态密度'])}。`,
+                    `在微观层面，${kw1}通过${randomChoice(['交换作用', '偶极相互作用', '范德华力', '氢键', '共价键', '静电相互作用'])}与${kw2}发生耦合。`,
+                    
+                    // 能量角度类
+                    `从能量角度分析，${kw2}的变化对应于系统${randomChoice(['自由能', '内能', '焓', '吉布斯自由能', '亥姆霍兹自由能'])}的${randomChoice(['降低', '升高', '重新分布', '极值'])}。`,
+                    `这一过程的${randomChoice(['活化能', '能垒', '势阱深度', '特征能量'])}约为${randomFloat(0.001, 100, 3)} eV，与${randomChoice(['实验测量值', '理论计算值', '文献报道值'])}基本一致。`,
+                    
+                    // 动力学类
+                    `动力学分析表明，${kw2}的${randomChoice(['弛豫时间', '响应时间', '特征时间', '寿命'])}与${kw1}的强度呈${randomChoice(['指数关系', '幂律关系', '线性关系', '对数关系'])}。`,
+                    `这一效应的时间尺度约为${randomFloat(0.001, 1000, 3)} ${randomChoice(['fs', 'ps', 'ns', 'μs', 'ms', 's'])}，属于${randomChoice(['超快', '快速', '中速', '慢速'])}过程。`
+                ];
+            }
+
+            // 引用文献模板生成函数
+            function getCitationSentences() {
+                return [
+                    // 某人研究表明类
+                    `${randomChoice(AUTHOR_NAMES)}等人[${randomInt(1, 30)}]的研究表明，${kw1}在${kw3}条件下会表现出${randomChoice(['反常行为', '奇异特性', '量子效应', '非单调变化', '临界行为', '非线性响应'])}。`,
+                    `${randomChoice(AUTHOR_NAMES)}和${randomChoice(AUTHOR_NAMES)}[${randomInt(1, 30)}]通过${randomChoice(['实验', '理论', '数值模拟'])}研究了${kw2}的${randomChoice(['性质', '行为', '机制', '演化'])}。`,
+                    
+                    // 期刊发表类
+                    `根据${randomChoice(JOURNALS)}上发表的最新研究[${randomInt(1, 30)}]，${kw2}的${randomChoice(['临界温度', '转变点', '阈值', '特征尺度', '耦合强度'])}约为${randomFloat(0.01, 1000, 3)}。`,
+                    `近期发表在${randomChoice(JOURNALS)}上的一篇综述[${randomInt(1, 30)}]系统总结了${kw1}研究的最新进展。`,
+                    
+                    // 证据支持类
+                    `这一结论得到了大量实验证据的支持[${randomInt(1, 30)}-${randomInt(31, 50)}]。`,
+                    `许多研究小组都独立观察到了类似的现象[${randomInt(1, 30)}, ${randomInt(1, 30)}, ${randomInt(1, 30)}]。`,
+                    
+                    // 对比类
+                    `与${randomChoice(AUTHOR_NAMES)}等人的工作[${randomInt(1, 30)}]相比，本文的方法具有${randomChoice(['更高的精度', '更广的适用范围', '更低的计算成本', '更强的鲁棒性', '更好的物理图像'])}。`,
+                    `不同于${randomChoice(AUTHOR_NAMES)}等人提出的模型[${randomInt(1, 30)}]，我们的理论考虑了${kw3}的影响。`,
+                    
+                    // 经典工作类
+                    `早在${randomInt(1950, 2000)}年，${randomChoice(AUTHOR_NAMES)}就提出了著名的${randomChoice(['理论', '模型', '公式', '定律', '原理'])}[${randomInt(1, 30)}]，为后续研究奠定了基础。`,
+                    `经典的${randomChoice(['理论', '模型', '实验'])}[${randomInt(1, 30)}]认为${kw2}只与${kw1}有关，但最新研究表明${kw3}也起着重要作用。`,
+                    
+                    // 争议类
+                    `然而，这一观点也受到了一些学者的质疑[${randomInt(1, 30)}]，他们认为${randomChoice(['证据不足', '解释有误', '实验有缺陷', '理论不严谨'])}。`,
+                    `关于${kw2}的${randomChoice(['起源', '机制', '本质', '应用'])}，学术界仍存在不同看法[${randomInt(1, 30)}, ${randomInt(1, 30)}]。`
+                ];
+            }
+
+            // 胡说八道彩蛋模板生成函数
+            function getCrazySentences() {
+                return [
+                    // 时间/日期相关
+                    `值得注意的是，实验过程中还观察到了一些${randomChoice(['有趣的', '奇怪的', '意外的', '神秘的', '难以解释的', '反直觉的', '不可思议的'])}现象，比如${randomChoice(CRAZY_CONTENTS)}，其原因尚不清楚，有待进一步研究。`,
+                    
+                    // 意外关联
+                    `此外，我们还意外地发现${randomChoice(['金鱼的游动', '植物的生长', '天气变化', '股票涨跌', '网络流量', '社交媒体热度', '外卖订单量', '奶茶销量', '快递配送速度', '食堂排队长度'])}与实验结果之间存在某种${randomChoice(['神秘的', '微妙的', '难以解释的', '统计学上显著的', '反直觉的', '非线性的', '量子化的'])}关联。`,
+                    
+                    // 音乐/声音影响
+                    `更令人惊讶的是，当我们播放${randomChoice(['古典音乐', '摇滚乐', '相声', '白噪音', 'ASMR', '电子音乐', '爵士乐', '民谣', '重金属', '说唱'])}时，${kw1}的${randomChoice(['稳定性', '重复性', '信噪比', '产率', '精度', '效率', '纯度', '结晶度'])}会${randomChoice(['显著提升', '明显下降', '发生变化', '变得不稳定', '出现周期性波动', '发生量子跃迁', '展现出自组织特性'])}。`,
+                    
+                    // 特殊日子
+                    `我们还注意到一个有趣的现象：${randomChoice(['周一', '周五', '满月', '新月', '节假日', '发薪日', '双十一', '618', '水逆期间', '本命年'])}的实验结果总是${randomChoice(['特别好', '特别差', '很奇怪', '很稳定', '波动很大', '呈现分形特征', '符合幂律分布'])}，虽然我们不知道为什么。`,
+                    
+                    // 人物影响
+                    `有趣的是，当${randomChoice(['导师', '实验室主任', '保洁阿姨', '外卖小哥', '楼下保安', '隔壁实验室的同学', '校长', '查寝的阿姨'])}在场时，实验结果会${randomChoice(['明显变好', '明显变差', '变得稳定', '出现异常', '发生坍缩', '展现出观察者效应'])}，这可能与${randomChoice(['心理因素', '气场', '量子纠缠', '蝴蝶效应', '观察者效应', '退相干', '测量问题'])}有关。`,
+                    
+                    // 食物影响
+                    `我们还发现，实验员${randomChoice(['喝奶茶后', '吃火锅后', '吃螺蛳粉后', '喝咖啡后', '吃烧烤后', '没吃饭时', '吃了大蒜后', '吃了巧克力后'])}做的实验，数据质量${randomChoice(['明显更高', '明显更低', '更稳定', '波动更大', '呈现出某种规律', '变得不可预测'])}。`,
+                    
+                    // 设备玄学
+                    `奇怪的是，${randomChoice(['新买的仪器', '老仪器', '左边那台', '右边那台', '进口的', '国产的', '报修过的', '从没修过的'])}测出来的结果总是${randomChoice(['更准确', '更不准', '偏大', '偏小', '更稳定', '更有灵性'])}，尽管它们是同一型号。`,
+                    
+                    // 网络玄学
+                    `实验数据似乎与${randomChoice(['网速', 'WiFi信号强度', '手机电量', '电脑配置', '操作系统版本', '键盘敲击力度', '鼠标灵敏度', '显示器亮度'])}有某种神秘的联系。`,
+                    
+                    // 梦境相关
+                    `更神奇的是，有些实验结果是在${randomChoice(['梦里', '洗澡时', '蹲马桶时', '散步时', '发呆时', '打游戏时'])}想到的，第二天一试居然对了。`,
+                    
+                    // 命名玄学
+                    `我们还发现，给样品起个${randomChoice(['好听的名字', '可爱的名字', '霸气的名字', '随便的名字', '编号', '外号'])}，实验成功率会${randomChoice(['提高', '降低', '不变', '变得随机'])}，这可能与${randomChoice(['心理暗示', '标签效应', '量子纠缠', '墨菲定律', '幸存者偏差'])}有关。`
+                ];
+            }
+
+            // 混沌哲学类句子模板生成函数
+            function getChaosSentences() {
+                return [
+                    `从${randomChoice(CHAOS_WORDS)}的视角来看，${kw1}与${kw2}的关系本质上是一种${randomChoice(CHAOS_WORDS)}的${randomChoice(['显现', '展开', '构型', '投射', '隐喻', '叙事'])}。`,
+                    `这一现象揭示了${randomChoice(CHAOS_WORDS)}与${randomChoice(CHAOS_WORDS)}之间的${randomChoice(['辩证关系', '张力', '悖论', '二律背反', '内在矛盾', '动态平衡'])}。`,
+                    `我们可以将其理解为${randomChoice(CHAOS_WORDS)}在${randomChoice(CHAOS_WORDS)}层面的${randomChoice(['体现', '表达', '实现', '外化', '对象化', '异化'])}。`,
+                    `这不仅是一个${randomChoice(['物理', '化学', '生物', '数学', '工程'])}问题，更是一个${randomChoice(CHAOS_WORDS)}问题，涉及到${randomChoice(CHAOS_WORDS)}的${randomChoice(['本质', '边界', '可能性', '合法性', '基础'])}。`,
+                    `从${randomChoice(CHAOS_WORDS)}的立场出发，我们需要重新审视${kw2}的${randomChoice(CHAOS_WORDS)}地位。`,
+                    `${kw1}的${randomChoice(['出现', '存在', '演化', '消失'])}，标志着${randomChoice(CHAOS_WORDS)}的${randomChoice(['终结', '开端', '转向', '完成', '危机', '转机'])}。`,
+                    `这一研究的深层意义在于，它触及了${randomChoice(CHAOS_WORDS)}的${randomChoice(['核心', '边缘', '边界', '基础', '本质', '表象'])}问题。`,
+                    `我们不能简单地将${kw2}归结为${kw1}的${randomChoice(['产物', '结果', '表现', '效应', '副产物'])}，而应该看到其中蕴含的${randomChoice(CHAOS_WORDS)}维度。`,
+                    `从更宏大的${randomChoice(CHAOS_WORDS)}视角来看，这一切都不过是${randomChoice(CHAOS_WORDS)}的${randomChoice(['某种显现', '某个阶段', '某种形态', '一个侧面', '一个瞬间'])}。`,
+                    `这让我们想起了${randomChoice(CHAOS_WORDS)}的著名论断：${randomChoice(['存在即合理', '我思故我在', '上帝已死', '一切历史都是当代史', '知识就是力量', '物竞天择'])}。`,
+                    `${kw1}与${kw2}之间的${randomChoice(['关系', '联系', '作用', '影响', '耦合'])}，本质上是${randomChoice(CHAOS_WORDS)}的${randomChoice(['外化', '内化', '中介', '环节', '阶段', '显现'])}。`,
+                    `这一发现挑战了我们对${randomChoice(CHAOS_WORDS)}的传统理解，迫使我们重新思考${randomChoice(CHAOS_WORDS)}的${randomChoice(['边界', '基础', '本质', '可能性', '合法性', '意义'])}。`
+                ];
+            }
+
+            // 英文术语混搭类句子模板生成函数
+            function getEnglishMixedSentences() {
+                return [
+                    `我们的研究表明，${kw1}的${randomChoice(['行为', '演化', '响应', '动力学', '稳定性'])}可以用${randomChoice(ENGLISH_TERMS)}理论来很好地描述。`,
+                    `这一现象与${randomChoice(ENGLISH_TERMS)}密切相关，其核心机制涉及${randomChoice(ENGLISH_TERMS)}。`,
+                    `从${randomChoice(ENGLISH_TERMS)}的角度来看，${kw2}本质上是一种${randomChoice(ENGLISH_TERMS)}现象。`,
+                    `我们提出的模型成功地解释了${randomChoice(ENGLISH_TERMS)}与${randomChoice(ENGLISH_TERMS)}之间的耦合效应。`,
+                    `实验结果与${randomChoice(ENGLISH_TERMS)}理论的预测高度一致，验证了${randomChoice(ENGLISH_TERMS)}的有效性。`,
+                    `这一发现为理解${randomChoice(ENGLISH_TERMS)}提供了新的实验证据。`,
+                    `我们的工作在${randomChoice(ENGLISH_TERMS)}与${randomChoice(ENGLISH_TERMS)}之间建立了新的联系。`,
+                    `值得注意的是，${randomChoice(ENGLISH_TERMS)}在这一过程中扮演了${randomChoice(['关键', '重要', '核心', '决定性', '基础性'])}的角色。`,
+                    `这一效应的特征可以用${randomChoice(ENGLISH_TERMS)}的典型特征来刻画。`,
+                    `我们的研究为${randomChoice(ENGLISH_TERMS)}领域的发展做出了贡献。`,
+                    `进一步分析表明，${randomChoice(ENGLISH_TERMS)}与${randomChoice(ENGLISH_TERMS)}之间存在非平凡的关系。`,
+                    `这一结果可以在${randomChoice(ENGLISH_TERMS)}的框架下得到自然的解释。`
+                ];
+            }
+
+            // 普通学术废话模板生成函数
+            function getNormalSentences() {
+                return [
+                    '这一发现具有重要的理论意义和潜在的应用价值。',
+                    '进一步的研究正在进行中，相关结果将在后续工作中报道。',
+                    `这为我们理解${kw2}的本质提供了新的视角。`,
+                    '相关的深入分析将在下一节详细讨论。',
+                    '这一结果对相关领域的研究具有一定的参考价值。',
+                    '更多的实验验证和理论分析仍在进行中。',
+                    '这些发现为后续研究奠定了基础。',
+                    '该方法具有一定的通用性和推广价值。',
+                    '详细的推导过程可参见附录。',
+                    '这与我们的预期基本一致。',
+                    '这是一个值得深入研究的方向。',
+                    '相关问题有待进一步探讨。',
+                    '这一现象的深层原因仍需进一步研究。',
+                    '我们将在后续工作中继续关注这一问题。',
+                    '这为我们提供了一个新的研究思路。',
+                    '这一领域还有许多问题值得探索。',
+                    '我们的研究只是一个初步的尝试。',
+                    '更深入的研究正在开展中。',
+                    '这一结果具有一定的启发性。',
+                    '相关的讨论还可以进一步深入。'
+                ];
+            }
+
+            // 结尾句模板生成函数
+            function getEndings() {
+                return [
+                    // 总结类
+                    `综上所述，${sectionTitle}为后续研究奠定了${randomChoice(['理论基础', '实验基础', '方法基础', '数据基础', '重要基础'])}。`,
+                    `总的来说，${sectionTitle}的研究对于理解${kw2}的${randomChoice(['本质', '机制', '行为', '演化'])}具有重要意义。`,
+                    
+                    // 过渡类
+                    '这些结果将在下一章中进行更深入的讨论。',
+                    '接下来，我们将通过实验来验证这一理论预测。',
+                    '相关内容将在后续章节中进一步展开。',
+                    '下一节将详细讨论这一现象的物理机制。',
+                    
+                    // 线索类
+                    `这为我们理解${kw1}与${kw2}的关系提供了重要线索。`,
+                    `这些发现为揭示${kw3}的作用机制打开了新的窗口。`,
+                    
+                    // 展望类
+                    '未来的研究将进一步探索这一现象的深层机制。',
+                    '更多的实验和理论工作仍有待开展。',
+                    
+                    // 结论类
+                    '本节的结果为全文的分析提供了重要支撑。',
+                    `通过本节的讨论，我们对${sectionTitle}有了更全面的认识。`
+                ];
+            }
+
+            // 方法论讨论模板生成函数
+            function getMethodologySentences() {
+                return [
+                    // 方法选择类
+                    `本研究采用${randomChoice(RESEARCH_METHODS)}作为主要研究方法，该方法在${randomChoice(['相关领域', '学术界', '工业界'])}已被广泛应用。`,
+                    `选择${randomChoice(RESEARCH_METHODS)}方法的原因在于其具有${randomChoice(['高精度', '高效率', '强鲁棒性', '广泛适用性'])}的特点。`,
+                    
+                    // 方法改进类
+                    `我们对传统的${randomChoice(RESEARCH_METHODS)}方法进行了改进，引入了${kw3}作为${randomChoice(['修正项', '调控参数', '优化目标', '约束条件'])}。`,
+                    `改进后的方法在${randomChoice(['计算效率', '精度', '稳定性', '适用范围'])}方面有了显著提升。`,
+                    
+                    // 方法验证类
+                    `通过与${randomChoice(['实验数据', '解析解', '数值模拟', '前人结果'])}的对比，验证了该方法的${randomChoice(['正确性', '可靠性', '有效性', '准确性'])}。`,
+                    `我们还进行了${randomChoice(['收敛性分析', '稳定性分析', '敏感性分析', '误差分析'])}，结果表明该方法具有良好的${randomChoice(['收敛性', '稳定性', '鲁棒性', '可靠性'])}。`,
+                    
+                    // 方法比较类
+                    `与${randomChoice(['有限元法', '有限差分法', '蒙特卡洛方法', '分子动力学'])}相比，本文提出的方法具有${randomChoice(['更高的效率', '更低的计算成本', '更好的精度', '更广的适用范围'])}。`,
+                    `该方法的主要优势在于能够处理${randomChoice(['多尺度问题', '非线性问题', '耦合问题', '高维问题'])}。`
+                ];
+            }
+
+            // 数据分析模板生成函数
+            function getDataAnalysisSentences() {
+                return [
+                    // 统计分析类
+                    `我们对实验数据进行了${randomChoice(['统计分析', '回归分析', '相关性分析', '主成分分析'])}，结果表明${kw1}与${kw2}之间存在${randomChoice(['显著相关', '强相关', '弱相关', '非线性相关'])}关系。`,
+                    `数据的${randomChoice(['均值', '方差', '标准差', '中位数'])}为${randomFloat(0.1, 100, 3)}，表明系统具有${randomChoice(['较高的', '较低的', '中等的'])}${randomChoice(['稳定性', '波动性', '离散程度', '一致性'])}。`,
+                    
+                    // 误差分析类
+                    `实验误差主要来源于${randomChoice(['测量误差', '环境噪声', '样品不均匀性', '仪器漂移'])}，总误差约为${randomFloat(0.1, 10, 2)}%。`,
+                    `通过${randomChoice(['误差传递公式', '蒙特卡洛方法', 'Bootstrap方法', 'Jackknife方法'])}估计，结果的置信区间为${randomFloat(0.01, 5, 3)}。`,
+                    
+                    // 数据处理类
+                    `原始数据经过${randomChoice(['滤波', '降噪', '归一化', '标准化', '基线校正'])}处理后，${randomChoice(['信噪比', '分辨率', '精度', '稳定性'])}有了明显提升。`,
+                    `我们采用${randomChoice(['滑动平均', '小波变换', '傅里叶变换', '卡尔曼滤波'])}方法对数据进行了平滑处理。`,
+                    
+                    // 显著性检验类
+                    `统计检验表明，实验结果具有${randomChoice(['高度统计显著性', '统计显著性', '边缘显著性'])}（p < ${randomFloat(0.001, 0.05, 3)}）。`,
+                    `方差分析结果显示，${kw1}对${kw2}的影响是${randomChoice(['显著的', '高度显著的', '不显著的'])}。`
+                ];
+            }
+
+            // 比较研究模板生成函数
+            function getComparisonSentences() {
+                return [
+                    // 横向比较类
+                    `与${randomChoice(['传统方法', '现有技术', '前人工作', '其他方案'])}相比，本文的方法在${randomChoice(['精度', '效率', '稳定性', '适用范围'])}方面有了${randomChoice(['显著提升', '明显改善', '质的飞跃', '一定提高'])}。`,
+                    `我们的结果与${randomChoice(['理论预测', '数值模拟', '实验数据', '文献报道'])}${randomChoice(['高度一致', '基本吻合', '存在偏差', '完全不同'])}，这${randomChoice(['验证了', '支持了', '部分支持了', '挑战了'])}现有的理论框架。`,
+                    
+                    // 纵向比较类
+                    `与我们前期的工作相比，本研究在${randomChoice(['理论深度', '实验精度', '应用范围', '方法创新'])}方面有了进一步的提升。`,
+                    `相比之下，${kw3}的影响比${kw1}更为${randomChoice(['显著', '微弱', '复杂', '直接'])}。`,
+                    
+                    // 跨领域比较类
+                    `有趣的是，这一现象与${randomChoice(['生物学', '经济学', '社会学', '天文学'])}领域中的某些现象具有${randomChoice(['惊人的相似性', '一定的相似性', '本质的不同', '微妙的联系'])}。`,
+                    `这一规律在${randomChoice(['微观尺度', '宏观尺度', '介观尺度', '纳观尺度'])}同样适用，表明其具有${randomChoice(['普适性', '局限性', '条件依赖性', '尺度不变性'])}。`,
+                    
+                    // 方法对比类
+                    `两种方法得到的结果${randomChoice(['基本一致', '存在差异', '差异显著', '完全相同'])}，说明${randomChoice(['方法是可靠的', '需要进一步验证', '存在系统误差', '结果是稳健的'])}。`
+                ];
+            }
+
+            // 应用前景模板生成函数
+            function getApplicationSentences() {
+                return [
+                    // 应用领域类
+                    `这一发现有望在${randomChoice(['材料科学', '能源技术', '信息处理', '生物医学', '环境保护'])}领域得到应用。`,
+                    `该技术可用于${randomChoice(['提高效率', '降低成本', '改善性能', '优化设计', '预测结果'])}，具有广阔的应用前景。`,
+                    
+                    // 产业化前景类
+                    `从应用角度来看，该方法具有${randomChoice(['重要的', '巨大的', '一定的', '潜在的'])}${randomChoice(['商业价值', '产业化前景', '社会意义', '经济价值'])}。`,
+                    `如果能够实现产业化，预计可以${randomChoice(['提高生产效率', '降低能耗', '减少污染', '创造就业'])}。`,
+                    
+                    // 实际意义类
+                    `这项研究对于${randomChoice(['解决实际问题', '推动技术进步', '促进学科发展', '培养人才'])}具有重要的现实意义。`,
+                    `相关成果可以直接应用于${randomChoice(['工业生产', '临床诊断', '环境监测', '质量控制'])}等领域。`,
+                    
+                    // 未来展望类
+                    `未来可以通过${randomChoice(['优化算法', '改进实验', '扩大样本', '跨学科合作'])}进一步提升该方法的${randomChoice(['性能', '效率', '精度', '适用性'])}。`,
+                    `随着${randomChoice(['技术的进步', '理论的完善', '需求的增长', '成本的降低'])}，该方法的应用范围将不断扩大。`
+                ];
+            }
+
+            // 局限性讨论模板生成函数
+            function getLimitationSentences() {
+                return [
+                    // 方法局限类
+                    `需要指出的是，本研究的方法存在一定的局限性，主要体现在${randomChoice(['计算成本较高', '适用范围有限', '精度有待提高', '假设条件较强'])}。`,
+                    `该方法在${randomChoice(['极端条件', '复杂系统', '多尺度问题', '非线性区域'])}下的适用性还有待进一步验证。`,
+                    
+                    // 数据局限类
+                    `由于${randomChoice(['实验条件限制', '样本量不足', '时间有限', '设备精度'])}，本研究的数据还存在一定的${randomChoice(['不确定性', '误差', '偏差', '局限性'])}。`,
+                    `实验结果可能受到${randomChoice(['环境因素', '样品制备', '测量方法', '操作人员'])}的影响，需要更多的实验来验证。`,
+                    
+                    // 理论局限类
+                    `本研究提出的理论模型基于${randomChoice(['若干假设', '简化条件', '理想情况', '平均场近似'])}，在实际应用中需要考虑${randomChoice(['更多因素', '复杂情况', '非线性效应', '涨落影响'])}。`,
+                    `该理论的适用范围是${randomChoice(['有限的', '有条件的', '需要验证的', '有待扩展的'])}。`,
+                    
+                    // 未来改进类
+                    `未来的研究可以从${randomChoice(['理论完善', '方法改进', '实验优化', '应用拓展'])}等方面进一步深入。`,
+                    `我们计划在后续工作中${randomChoice(['改进实验方案', '完善理论模型', '扩大研究范围', '开展更多验证'])}，以解决目前存在的问题。`
+                ];
+            }
+
+            // 跨学科混搭类句子模板生成函数
+            function getInterdisciplinarySentences() {
+                return [
+                    // 物理+美食
+                    `从${randomChoice(['量子力学', '热力学', '统计物理', '混沌理论'])}的角度重新审视${randomChoice(['螺蛳粉的烹饪', '奶茶的调制', '火锅的涮煮', '烧烤的火候'])}，我们发现其中蕴含着深刻的${randomChoice(['相变原理', '扩散定律', '熵增原理', '分形几何'])}。`,
+                    
+                    // 生物+计算机
+                    `有趣的是，${randomChoice(['神经网络', '遗传算法', '群体智能', '人工生命'])}的许多原理，与${randomChoice(['蚂蚁搬家', '蜜蜂筑巢', '鸟群飞行', '鱼群游动'])}的行为模式有着惊人的相似性。`,
+                    
+                    // 经济+物理
+                    `我们可以用${randomChoice(['统计力学', '相变理论', '渗流理论', '网络科学'])}的方法来分析${randomChoice(['股票市场', '房价波动', '通货膨胀', '金融危机'])}，这形成了一门新的交叉学科——${randomChoice(['经济物理学', '金融物理学', '社会物理学', '计算经济学'])}。`,
+                    
+                    // 心理+数学
+                    `从${randomChoice(['分形几何', '混沌理论', '复杂系统', '非线性动力学'])}的角度来看，${randomChoice(['人类的情绪', '思维过程', '梦境', '记忆'])}可能具有${randomChoice(['自相似结构', '奇怪吸引子', '初值敏感性', '幂律分布'])}的特征。`,
+                    
+                    // 历史+生物
+                    `研究表明，${randomChoice(['朝代更迭', '文明兴衰', '战争爆发', '瘟疫流行'])}的规律，与${randomChoice(['种群动力学', '流行病模型', '生态位理论', '协同进化'])}有着异曲同工之妙。`,
+                    
+                    // 艺术+科学
+                    `令人惊讶的是，${randomChoice(['音乐的和声', '绘画的构图', '建筑的比例', '诗歌的韵律'])}中竟然蕴含着${randomChoice(['黄金分割', '斐波那契数列', '傅里叶变换', '对称性原理'])}的数学原理。`,
+                    
+                    // 哲学+计算机
+                    `${randomChoice(['人工智能', '虚拟现实', '元宇宙', '脑机接口'])}的发展，让我们重新思考${randomChoice(['意识的本质', '存在的意义', '真实与虚拟的边界', '人类的定义'])}这些古老的${randomChoice(['哲学', '形而上学', '本体论', '认识论'])}问题。`,
+                    
+                    // 天文+地理
+                    `从${randomChoice(['宇宙学', '天体物理', '行星科学', '深空探测'])}的视角来看，${randomChoice(['地球的气候', '板块运动', '生物演化', '人类文明'])}不过是${randomChoice(['宇宙演化', '恒星演化', '行星演化', '银河系演化'])}中的一个微小插曲。`,
+                    
+                    // 医学+工程
+                    `${randomChoice(['3D打印器官', '基因编辑', '纳米机器人', '人工心脏'])}技术的发展，正在模糊${randomChoice(['生物与机器', '自然与人工', '生命与非生命', '健康与疾病'])}之间的界限。`,
+                    
+                    // 语言+信息
+                    `我们发现，${randomChoice(['自然语言', '人类语言', '文字系统', '语法结构'])}的演化规律，与${randomChoice(['信息论', '编码理论', '压缩算法', '通信系统'])}有着深刻的内在联系。`
+                ];
+            }
+
+            // 历史穿越类句子模板生成函数
+            function getHistorySentences() {
+                return [
+                    // 古代人物+现代科学
+                    `如果${randomChoice(['孔子', '老子', '庄子', '墨子', '韩非子', '孙子', '屈原', '司马迁', '李白', '杜甫', '苏轼', '王阳明'])}生活在今天，他一定会对${randomChoice(['量子力学', '相对论', '人工智能', '元宇宙', '基因编辑', '核聚变', '太空探索', '脑机接口'])}产生浓厚的兴趣。`,
+                    
+                    // 历史事件+科学理论
+                    `从${randomChoice(['混沌理论', '蝴蝶效应', '复杂系统', '网络科学'])}的角度重新分析${randomChoice(['赤壁之战', '淝水之战', '安史之乱', '靖康之变', '土木堡之变', '鸦片战争', '甲午战争', '辛亥革命'])}，我们会发现一些有趣的规律。`,
+                    
+                    // 古代发明+现代科技
+                    `令人惊讶的是，早在${randomInt(100, 2000)}年前，古人就已经掌握了${randomChoice(['杠杆原理', '浮力定律', '小孔成像', '活字印刷', '火药配方', '指南针原理', '造纸术', '地动仪'])}的基本原理，这比西方早了${randomInt(100, 1500)}年。`,
+                    
+                    // 历史人物+学术贡献
+                    `有学者认为，${randomChoice(['古希腊哲学家', '中国古代思想家', '中世纪学者', '文艺复兴大师'])}的某些思想，与现代${randomChoice(['量子力学', '系统论', '控制论', '信息论'])}有着惊人的相似之处。`,
+                    
+                    // 文明兴衰+物理规律
+                    `有趣的是，${randomChoice(['罗马帝国', '汉朝', '唐朝', '蒙古帝国', '明朝', '清朝', '玛雅文明', '古埃及文明'])}的兴衰周期，竟然可以用${randomChoice(['逻辑斯蒂方程', '幂律分布', '相变理论', '渗流模型'])}来很好地拟合。`,
+                    
+                    // 古代预言+现代发现
+                    `更神奇的是，${randomChoice(['古老的预言', '远古的传说', '神秘的壁画', '失传的典籍'])}中竟然提到了${randomChoice(['量子纠缠', '平行宇宙', '时间旅行', '外星人', '史前文明', '大洪水'])}，这究竟是巧合还是${randomChoice(['史前文明的证据', '外星人的遗迹', '时间旅行者的痕迹', '集体无意识的显现'])}？`,
+                    
+                    // 历史之谜+科学解释
+                    `关于${randomChoice(['金字塔的建造', '复活节岛石像', '巨石阵', '纳斯卡线条', '三星堆文明', '良渚文化'])}的谜团，也许可以用${randomChoice(['外星文明干预', '史前高级文明', '失落的技术', '集体无意识'])}来解释。`,
+                    
+                    // 古代哲学+现代科学
+                    `${randomChoice(['道家', '儒家', '佛家', '墨家', '名家', '阴阳家'])}的某些思想，与现代${randomChoice(['量子力学', '系统论', '生态学', '心理学'])}的最新发现有着异曲同工之妙。`,
+                    
+                    // 历史人物+如果
+                    `如果${randomChoice(['牛顿', '爱因斯坦', '达尔文', '伽利略', '特斯拉', '达芬奇', '阿基米德'])}能够看到今天的${randomChoice(['量子计算机', '人工智能', '基因编辑', '太空探索', '元宇宙', '核聚变'])}，他一定会感到${randomChoice(['震惊', '欣慰', '困惑', '兴奋'])}。`,
+                    
+                    // 古代技术+现代复原
+                    `近年来，通过${randomChoice(['考古发现', '文献考证', '实验复原', '计算机模拟'])}，人们发现古人的${randomChoice(['冶金技术', '建筑工艺', '医学水平', '数学成就'])}远远超出了我们的想象。`
+                ];
+            }
+
+            // 神话传说类句子模板生成函数
+            function getMythologySentences() {
+                return [
+                    // 中国神话+科学
+                    `有趣的是，${randomChoice(['盘古开天', '女娲补天', '后羿射日', '嫦娥奔月', '夸父追日', '精卫填海', '愚公移山', '大禹治水'])}的神话故事，竟然与${randomChoice(['宇宙大爆炸', '气候变化', '小行星撞击', '太空探索', '海平面上升', '地质运动', '水利工程'])}有着某种奇妙的对应关系。`,
+                    
+                    // 希腊神话+心理
+                    `从${randomChoice(['精神分析', '分析心理学', '原型理论', '集体无意识'])}的角度来看，${randomChoice(['俄狄浦斯', '纳西索斯', '西西弗斯', '普罗米修斯', '潘多拉', '美杜莎', '雅典娜', '阿波罗'])}的神话故事，其实是${randomChoice(['人类心理', '人性弱点', '命运悲剧', '英雄旅程'])}的隐喻。`,
+                    
+                    // 神话生物+生物
+                    `令人惊讶的是，${randomChoice(['龙', '凤凰', '麒麟', '玄武', '白虎', '朱雀', '九尾狐', '鲲鹏'])}这些神话中的生物，在${randomChoice(['古生物化石', '深海生物', '基因突变', '杂交物种'])}中竟然能找到类似的原型。`,
+                    
+                    // 神话事件+地质
+                    `有学者认为，${randomChoice(['大洪水', '十日并出', '天塌地陷', '沧海桑田', '山崩地裂', '电闪雷鸣'])}的神话传说，可能是远古人类对${randomChoice(['史前大洪水', '小行星撞击', '火山爆发', '地震', '气候变化', '超新星爆发'])}的集体记忆。`,
+                    
+                    // 神话人物+历史
+                    `越来越多的证据表明，${randomChoice(['黄帝', '炎帝', '蚩尤', '尧舜禹', '三皇五帝'])}这些神话人物，可能真的在历史上存在过，他们可能是${randomChoice(['部落首领', '伟大的发明家', '杰出的军事家', '英明的政治家'])}。`,
+                    
+                    // 神话地点+地理
+                    `关于${randomChoice(['昆仑山', '蓬莱仙岛', '西天灵山', '东海龙宫', '地府', '天庭', '西方极乐世界'])}的传说，也许并非完全虚构，它们可能对应着${randomChoice(['真实的地理坐标', '其他维度的空间', '平行宇宙', '人类的精神世界'])}。`,
+                    
+                    // 神话武器+科技
+                    `神奇的是，${randomChoice(['金箍棒', '轩辕剑', '盘古斧', '后羿弓', '炼妖壶', '昊天塔', '伏羲琴', '神农鼎'])}这些神话中的法宝，其功能竟然与现代的${randomChoice(['纳米技术', '量子武器', '空间折叠', '能量武器', '人工智能', '基因编辑'])}有着惊人的相似之处。`,
+                    
+                    // 神话能力+生物
+                    `${randomChoice(['七十二变', '腾云驾雾', '千里眼', '顺风耳', '隐身术', '读心术', '预知未来', '起死回生'])}这些神话中的能力，在${randomChoice(['基因编辑', '脑机接口', '虚拟现实', '人工智能', '再生医学', '量子通信'])}技术高度发达的今天，也许不再是遥不可及的梦想。`,
+                    
+                    // 创世神话+宇宙学
+                    `从${randomChoice(['宇宙大爆炸', '暴胀理论', '多重宇宙', '弦理论', 'M理论', '圈量子引力'])}的角度重新审视${randomChoice(['创世神话', '开天辟地', '神创论', '混沌初开'])}，我们会发现两者之间有着某种奇妙的共鸣。`,
+                    
+                    // 神话怪物+心理
+                    `心理学家认为，${randomChoice(['僵尸', '吸血鬼', '狼人', '幽灵', '恶魔', '妖怪', '鬼魂', '梦魇'])}这些恐怖的形象，其实是${randomChoice(['人类集体无意识', '内心恐惧', '社会焦虑', '道德禁忌'])}的投射。`
+                ];
+            }
+
+            // 美食混搭类句子模板生成函数
+            function getFoodMixSentences() {
+                return [
+                    // 物理+美食
+                    `研究发现，${randomChoice(['螺蛳粉', '奶茶', '火锅', '烧烤', '麻辣烫', '小龙虾', '臭豆腐', '糖葫芦'])}的${randomChoice(['口感', '风味', '香气', '色泽', '质地', '温度'])}，与${randomChoice(['相变过程', '扩散现象', '化学反应', '物理变化', '热力学平衡', '动力学过程'])}有着密切的关系。`,
+                    
+                    // 化学+美食
+                    `从${randomChoice(['有机化学', '物理化学', '生物化学', '分析化学', '食品化学', '风味化学'])}的角度来看，${randomChoice(['美食的烹饪', '食材的搭配', '味道的形成', '香气的产生', '口感的变化', '营养的转化'])}是一个极其复杂的过程。`,
+                    
+                    // 生物+美食
+                    `有趣的是，${randomChoice(['发酵食品', '腌制食品', '酿造食品', '烘焙食品'])}的制作过程，实际上是利用了${randomChoice(['微生物', '酶', '酵母', '乳酸菌', '醋酸菌', '霉菌'])}的${randomChoice(['代谢活动', '生物催化', '发酵作用', '分解作用', '合成作用', '转化作用'])}。`,
+                    
+                    // 数学+美食
+                    `令人惊讶的是，${randomChoice(['拉面的拉伸', '饺子的包法', '面条的切法', '包子的褶子', '蛋糕的裱花', '巧克力的调温'])}中竟然蕴含着${randomChoice(['黄金分割', '斐波那契数列', '分形几何', '拓扑学', '微分几何', '对称性'])}的数学原理。`,
+                    
+                    // 物理+烹饪
+                    `${randomChoice(['火候的控制', '油温的掌握', '时间的把握', '调料的配比', '食材的选择', '刀工的讲究'])}，从${randomChoice(['热力学', '传热学', '流体力学', '材料科学', '控制理论', '优化理论'])}的角度来看，都是一门高深的学问。`,
+                    
+                    // 美食+心理
+                    `研究表明，${randomChoice(['美食', '甜食', '辣味', '酸味', '苦味', '咸味'])}能够刺激大脑分泌${randomChoice(['多巴胺', '内啡肽', '血清素', '催产素', '肾上腺素', '去甲肾上腺素'])}，从而让人感到${randomChoice(['快乐', '满足', '幸福', '兴奋', '放松', '安慰'])}。`,
+                    
+                    // 美食+文化
+                    `从${randomChoice(['文化人类学', '社会学', '历史学', '民俗学', '文化研究', '跨文化比较'])}的角度来看，${randomChoice(['饮食文化', '餐桌礼仪', '烹饪方式', '食材选择', '口味偏好', '节日食俗'])}是了解一个${randomChoice(['民族', '文化', '社会', '历史', '地域', '群体'])}的重要窗口。`,
+                    
+                    // 美食+经济
+                    `${randomChoice(['餐饮业', '食品工业', '快餐业', '外卖行业', '奶茶行业', '火锅行业'])}的发展，不仅带动了${randomChoice(['经济增长', '就业机会', '相关产业', '消费升级', '商业模式创新', '技术进步'])}，还深刻地改变了人们的${randomChoice(['生活方式', '饮食习惯', '社交方式', '消费观念', '时间观念', '空间观念'])}。`,
+                    
+                    // 美食+科技
+                    `随着${randomChoice(['人工智能', '大数据', '物联网', '3D打印', '基因编辑', '合成生物学'])}技术的发展，未来的${randomChoice(['食品生产', '烹饪方式', '饮食体验', '营养搭配', '食品安全', '美食创作'])}将会发生翻天覆地的变化。`,
+                    
+                    // 美食+哲学
+                    `从${randomChoice(['哲学', '美学', '伦理学', '存在主义', '现象学', '解释学'])}的角度来看，${randomChoice(['美食的意义', '饮食的本质', '味道的哲学', '食物的伦理', '烹饪的艺术', '品尝的境界'])}是一个值得深思的话题。`
+                ];
+            }
+
+            // 游戏混搭类句子模板生成函数
+            function getGamingSentences() {
+                return [
+                    // 游戏机制+科学
+                    `有趣的是，${randomChoice(['升级系统', '装备系统', '技能树', '成就系统', '任务系统', '副本系统', 'PVP系统', '公会系统'])}这些游戏机制，与${randomChoice(['行为心理学', '强化学习', '激励理论', '目标设置理论', '社会认同理论', '群体动力学'])}有着惊人的相似性。`,
+                    
+                    // 游戏物理+真实物理
+                    `从${randomChoice(['物理引擎', '碰撞检测', '运动模拟', '流体模拟', '布料模拟', '粒子系统'])}的角度来看，${randomChoice(['3A大作', '沙盒游戏', '物理模拟游戏', '赛车游戏', '射击游戏', '动作游戏'])}中的物理效果已经越来越接近现实。`,
+                    
+                    // 游戏AI+真实AI
+                    `令人惊讶的是，${randomChoice(['游戏AI', 'NPC行为', '路径寻路', '决策系统', '生成式内容', ' procedural generation'])}的许多技术，竟然是${randomChoice(['人工智能', '机器学习', '强化学习', '遗传算法', '神经网络', '专家系统'])}的重要应用领域。`,
+                    
+                    // 游戏经济+真实经济
+                    `研究发现，${randomChoice(['游戏内经济系统', '虚拟货币', '拍卖行', '交易系统', '通货膨胀', '供需关系'])}的运行规律，与${randomChoice(['现实经济', '宏观经济学', '微观经济学', '金融市场', '货币理论', '博弈论'])}有着异曲同工之妙。`,
+                    
+                    // 游戏社交+真实社交
+                    `从${randomChoice(['社会学', '社会心理学', '传播学', '人类学', '文化研究', '群体动力学'])}的角度来看，${randomChoice(['MMORPG', 'MOBA', '吃鸡游戏', '社交游戏', '元宇宙游戏', '沙盒游戏'])}中的社交互动，是研究${randomChoice(['虚拟社区', '在线社交', '身份认同', '群体行为', '文化传播', '社会规范'])}的绝佳样本。`,
+                    
+                    // 游戏心理学
+                    `为什么人们会对${randomChoice(['游戏', '抽卡', '开箱', '成就', '排行榜', '皮肤'])}如此沉迷？这涉及到${randomChoice(['行为心理学', '认知心理学', '神经科学', '成瘾机制', '奖励系统', '多巴胺分泌'])}等多个领域的研究。`,
+                    
+                    // 游戏教育
+                    `越来越多的研究表明，${randomChoice(['游戏化学习', '严肃游戏', '教育游戏', '模拟训练', 'VR教学', '互动教学'])}能够显著提高${randomChoice(['学习效率', '学习兴趣', '记忆效果', '理解深度', '动手能力', '创新思维'])}。`,
+                    
+                    // 游戏艺术
+                    `从${randomChoice(['艺术学', '美学', '设计学', '叙事学', '电影理论', '媒介研究'])}的角度来看，${randomChoice(['3A大作', '独立游戏', '艺术游戏', '叙事游戏', '互动电影', 'VR体验'])}已经成为一种新的${randomChoice(['艺术形式', '媒介形态', '叙事方式', '表达手段', '文化载体', '娱乐方式'])}。`,
+                    
+                    // 游戏与现实
+                    `随着${randomChoice(['VR', 'AR', 'MR', '脑机接口', '元宇宙', '数字孪生'])}技术的发展，${randomChoice(['游戏与现实', '虚拟与真实', '线上与线下', '数字与物理', '人工与自然'])}之间的界限正在变得越来越模糊。`,
+                    
+                    // 游戏产业
+                    `${randomChoice(['游戏产业', '电竞行业', '直播行业', '游戏开发', '游戏发行', '游戏运营'])}已经成为一个庞大的${randomChoice(['产业', '生态系统', '文化现象', '经济支柱', '就业市场', '创新引擎'])}，深刻地影响着${randomChoice(['经济', '文化', '社会', '科技', '教育', '娱乐'])}的方方面面。`
+                ];
+            }
+
+            // 网络迷因类句子模板生成函数
+            function getMemeSentences() {
+                return [
+                    // 网络热词+学术
+                    `从${randomChoice(['社会学', '传播学', '语言学', '文化研究', '人类学', '心理学'])}的角度来看，${randomChoice(['网络热词', '梗文化', '表情包', '鬼畜视频', '弹幕文化', '土味视频'])}的流行，是${randomChoice(['青年亚文化', '网络文化', '后现代文化', '消费文化', '视觉文化', '参与式文化'])}的典型表现。`,
+                    
+                    // 梗+心理学
+                    `为什么${randomChoice(['梗', '表情包', '热词', '段子', '土味', '鬼畜'])}能够如此迅速地传播？这涉及到${randomChoice(['病毒式传播', '社会认同', '群体心理', '模因理论', '传播动力学', '网络效应'])}等多个方面的研究。`,
+                    
+                    // 网络文化+社会
+                    `研究表明，${randomChoice(['网络流行语', '梗文化', '表情包文化', '弹幕文化', '鬼畜文化', '土味文化'])}不仅是一种${randomChoice(['娱乐方式', '社交货币', '身份标识', '情感表达', '解压方式', '群体认同'])}，还深刻地反映了${randomChoice(['社会心态', '时代精神', '青年心理', '文化变迁', '社会结构', '价值观念'])}的变化。`,
+                    
+                    // 模因理论
+                    `从${randomChoice(['模因论', '文化进化论', '社会生物学', '演化心理学', '复杂系统', '网络科学'])}的角度来看，${randomChoice(['网络热词', '梗', '表情包', '段子', '视频', '音乐'])}的传播过程，与${randomChoice(['基因遗传', '病毒传播', '信息扩散', '谣言传播', '创新扩散', '文化演化'])}有着惊人的相似性。`,
+                    
+                    // 弹幕文化
+                    `有趣的是，${randomChoice(['弹幕', '评论区', '热评', '神回复', '一楼', '沙发'])}这种${randomChoice(['即时互动', '异步交流', '群体共创', '集体叙事', '实时吐槽', '情感共鸣'])}的方式，竟然创造出了一种全新的${randomChoice(['观看体验', '社交方式', '文化形态', '艺术形式', '表达手段', '参与模式'])}。`,
+                    
+                    // 表情包文化
+                    `从${randomChoice(['符号学', '语用学', '认知语言学', '视觉文化', '情感计算', '人机交互'])}的角度来看，${randomChoice(['表情包', 'emoji', '颜文字', '贴纸', '头像', '签名档'])}已经成为${randomChoice(['网络交流', '情感表达', '身份建构', '社交互动', '文化传播', '视觉语言'])}中不可或缺的一部分。`,
+                    
+                    // 鬼畜文化
+                    `令人惊讶的是，${randomChoice(['鬼畜', '音MAD', '人力VOCALOID', '鬼畜调教', '鬼畜全明星', '鬼畜素材'])}这种看似${randomChoice(['无厘头', '恶搞', '魔性', '洗脑', '荒诞', '解构'])}的艺术形式，竟然蕴含着${randomChoice(['音乐性', '节奏感', '创意性', '技术性', '艺术性', '文化内涵'])}。`,
+                    
+                    // 土味文化
+                    `${randomChoice(['土味视频', '土味情话', '社会摇', '喊麦', '快手文化', '抖音文化'])}的流行，从${randomChoice(['文化研究', '社会学', '人类学', '传播学', '心理学', '美学'])}的角度来看，是一种${randomChoice(['底层文化', '民间文化', '亚文化', '反主流文化', '草根文化', '大众文化'])}的${randomChoice(['崛起', '复兴', '变异', '融合', '创新', '传播'])}。`,
+                    
+                    // 网络黑话
+                    `研究发现，${randomChoice(['网络黑话', '缩写文化', '拼音缩写', '字母梗', '数字梗', '谐音梗'])}的使用，不仅是为了${randomChoice(['提高效率', '规避审查', '增加趣味性', '身份认同', '群体区分', '保密交流'])}，还反映了${randomChoice(['网络时代', '快节奏生活', '信息爆炸', '青年亚文化', '代际差异', '圈层文化'])}的特点。`,
+                    
+                    // 梗的生命周期
+                    `有趣的是，${randomChoice(['网络热词', '梗', '流行语', '表情包', '挑战', '神曲'])}的${randomChoice(['诞生', '传播', '流行', '衰落', '消亡', '复活'])}过程，竟然可以用${randomChoice(['生命周期理论', '创新扩散理论', '流行病学模型', '复杂系统', '网络科学', '演化博弈'])}来很好地描述。`
+                ];
+            }
+
+            // 句子类型权重
+            const typeWeights = {
+                theory: 0.10,
+                experiment: 0.08,
+                result: 0.07,
+                mechanism: 0.07,
+                methodology: 0.06,
+                data_analysis: 0.06,
+                comparison: 0.06,
+                application: 0.05,
+                limitation: 0.04,
+                citation: 0.06,
+                crazy: 0.06,
+                chaos: 0.05,
+                english: 0.04,
+                normal: 0.05,
+                interdisciplinary: 0.05,
+                history: 0.04,
+                mythology: 0.04,
+                food_mix: 0.04,
+                gaming: 0.03,
+                meme: 0.03
+            };
+
+            // 根据强度调整胡说八道比例
+            if (intensity > 0.5) {
+                typeWeights.crazy = 0.04 + intensity * 0.06;
+                typeWeights.chaos = 0.03 + intensity * 0.05;
+                typeWeights.english = 0.02 + intensity * 0.04;
+                typeWeights.interdisciplinary = 0.03 + intensity * 0.04;
+                typeWeights.history = 0.02 + intensity * 0.03;
+                typeWeights.mythology = 0.02 + intensity * 0.03;
+                typeWeights.food_mix = 0.02 + intensity * 0.03;
+                typeWeights.gaming = 0.01 + intensity * 0.03;
+                typeWeights.meme = 0.01 + intensity * 0.03;
+                typeWeights.normal = Math.max(0.02, 0.08 - intensity * 0.06);
+            }
+
+            // 生成开头句
+            const openings = getOpenings();
+            sentences.push(randomChoice(openings));
+
+            // 生成中间内容
+            const nSentences = randomInt(5, 10) + Math.floor(intensity * 5);
+            const typeGenerators = {
+                theory: getTheorySentences,
+                experiment: getExperimentSentences,
+                result: getResultSentences,
+                mechanism: getMechanismSentences,
+                methodology: getMethodologySentences,
+                data_analysis: getDataAnalysisSentences,
+                comparison: getComparisonSentences,
+                application: getApplicationSentences,
+                limitation: getLimitationSentences,
+                citation: getCitationSentences,
+                crazy: getCrazySentences,
+                chaos: getChaosSentences,
+                english: getEnglishMixedSentences,
+                normal: getNormalSentences,
+                interdisciplinary: getInterdisciplinarySentences,
+                history: getHistorySentences,
+                mythology: getMythologySentences,
+                food_mix: getFoodMixSentences,
+                gaming: getGamingSentences,
+                meme: getMemeSentences
+            };
+
+            for (let i = 0; i < nSentences; i++) {
+                // 加权随机选择句子类型
+                const r = Math.random();
+                let cumulative = 0;
+                let selectedType = 'normal';
+
+                for (const [type, weight] of Object.entries(typeWeights)) {
+                    cumulative += weight;
+                    if (r < cumulative) {
+                        selectedType = type;
+                        break;
+                    }
+                }
+
+                // 从对应类型的模板中随机选择
+                const templates = typeGenerators[selectedType]();
+                let templateIdx = randomInt(0, templates.length - 1);
+
+                // 尝试避免同一段落中重复使用相同模板（最多尝试3次）
+                let attempts = 0;
+                while (usedTemplates.has(`${selectedType}-${templateIdx}`) && attempts < 3) {
+                    templateIdx = randomInt(0, templates.length - 1);
+                    attempts++;
+                }
+                usedTemplates.add(`${selectedType}-${templateIdx}`);
+
+                sentences.push(templates[templateIdx]);
+            }
+
+            // 生成结尾句
+            const endings = getEndings();
+            sentences.push(randomChoice(endings));
+
+            return `<p>${sentences.join('')}</p>\n\n`;
+        }
+
+        // ============== 表格生成 ==============
+
+        function generateTable(kw1, kw2, kw3, tableNum) {
+            const nRows = randomInt(4, 7);
+            const nCols = randomInt(4, 6);
+            
+            // 表格类型
+            const tableTypes = [
+                'response',     // 响应特性表
+                'comparison',   // 对比表
+                'parameter',    // 参数表
+                'statistic',    // 统计表
+                'result'        // 结果表
+            ];
+            const tableType = randomChoice(tableTypes);
+            
+            // 表格标题模板
+            const tableTitleTemplates = {
+                response: [
+                    `不同条件下${kw2}的${kw1}响应特性`,
+                    `${kw1}强度对${kw2}性能的影响`,
+                    `不同${kw3}水平下${kw2}的响应曲线`,
+                    `${kw1}与${kw2}的剂量-效应关系`,
+                    `不同实验条件下${kw2}的测量结果`
+                ],
+                comparison: [
+                    `不同方法在${kw2}研究中的对比分析`,
+                    `${kw1}与${kw3}对${kw2}影响的比较`,
+                    `各组实验结果的对比分析`,
+                    `不同条件下${kw2}性能的综合比较`,
+                    `本文方法与传统方法的性能对比`
+                ],
+                parameter: [
+                    `实验样品的主要参数`,
+                    `${kw2}的特征参数汇总`,
+                    `不同样品的物理参数对比`,
+                    `实验所用主要参数列表`,
+                    `${kw1}的典型参数值`
+                ],
+                statistic: [
+                    `实验数据的统计分析结果`,
+                    `各组数据的描述性统计`,
+                    `${kw2}测量结果的统计特征`,
+                    `方差分析结果汇总表`,
+                    `相关性分析结果`
+                ],
+                result: [
+                    `主要实验结果汇总`,
+                    `${kw1}作用下${kw2}的变化规律`,
+                    `不同条件下的实验结果`,
+                    `${kw3}对${kw2}影响的实验结果`,
+                    `正交实验结果分析`
+                ]
+            };
+            
+            const tableTitle = randomChoice(tableTitleTemplates[tableType]);
+            
+            // 列标题模板
+            const colHeaderTemplates = {
+                response: [
+                    ['样品编号', `${kw1}强度`, '测量值', '误差', `${kw2}响应`],
+                    ['实验组', '参数A', '参数B', '平均值', '标准差'],
+                    ['条件编号', '温度', '压力', '${kw2}值', '备注'],
+                    ['测量次数', '${kw1}值', '${kw2}值', '相对偏差', '说明']
+                ],
+                comparison: [
+                    ['方法名称', '精度', '效率', '适用范围', '优缺点'],
+                    ['实验组别', '平均值', '标准差', '显著性', '结论'],
+                    ['对比项目', '方法A', '方法B', '本文方法', '最优'],
+                    ['性能指标', '传统方法', '改进方法', '提升幅度', '说明']
+                ],
+                parameter: [
+                    ['参数名称', '符号', '数值', '单位', '备注'],
+                    ['样品编号', '尺寸', '重量', '纯度', '来源'],
+                    ['设备名称', '型号', '精度', '量程', '生产厂家'],
+                    ['物理量', '符号', '数值', '误差', '测量方法']
+                ],
+                statistic: [
+                    ['统计量', '数值', '标准误', '置信区间', '显著性'],
+                    ['组别', '样本量', '平均值', '标准差', '标准误'],
+                    ['变量', '均值', '方差', '偏度', '峰度'],
+                    ['分析项', 'F值', 'p值', '显著性', '结论']
+                ],
+                result: [
+                    ['实验编号', '条件1', '条件2', '结果', '结论'],
+                    ['序号', '${kw1}', '${kw2}', '${kw3}', '备注'],
+                    ['实验组', '初始值', '最终值', '变化率', '说明'],
+                    ['测试项目', '测试结果', '标准值', '偏差', '结论']
+                ]
+            };
+            
+            const colHeaders = randomChoice(colHeaderTemplates[tableType]);
+            
+            // 行标签模板
+            const rowLabelTemplates = {
+                response: ['样品A', '样品B', '样品C', '样品D', '样品E', '样品F', '样品G'],
+                comparison: ['方法一', '方法二', '方法三', '方法四', '方法五'],
+                parameter: ['参数1', '参数2', '参数3', '参数4', '参数5', '参数6'],
+                statistic: ['组1', '组2', '组3', '组4', '组5'],
+                result: ['实验1', '实验2', '实验3', '实验4', '实验5', '实验6']
+            };
+            
+            const rowLabels = rowLabelTemplates[tableType];
+            
+            let table = `<div class="table-caption">表${tableNum} ${tableTitle}</div>\n`;
+            table += '<table>\n<tr>';
+            for (let i = 0; i < nCols; i++) {
+                table += `<th>${colHeaders[i % colHeaders.length]}</th>`;
+            }
+            table += '</tr>\n';
+            
+            for (let i = 0; i < nRows; i++) {
+                table += '<tr>';
+                for (let j = 0; j < nCols; j++) {
+                    if (j === 0) {
+                        // 第一列是行标签
+                        table += `<td>${rowLabels[i % rowLabels.length]}</td>`;
+                    } else {
+                        // 其他列是数据
+                        const rand = Math.random();
+                        if (rand < 0.3) {
+                            // 数值型
+                            table += `<td>${randomFloat(0.001, 1000, 3)}</td>`;
+                        } else if (rand < 0.5) {
+                            // 百分比型
+                            table += `<td>${randomFloat(0.1, 99.9, 2)}%</td>`;
+                        } else if (rand < 0.7) {
+                            // 误差型
+                            table += `<td>±${randomFloat(0.01, 10, 2)}</td>`;
+                        } else if (rand < 0.85) {
+                            // 整数型
+                            table += `<td>${randomInt(1, 1000)}</td>`;
+                        } else {
+                            // 文字型
+                            table += `<td>${randomChoice(['显著', '不显著', '正常', '异常', '合格', '不合格', '优', '良', '中', '差'])}</td>`;
+                        }
+                    }
+                }
+                table += '</tr>\n';
+            }
+            
+            table += '</table>\n\n';
+            return table;
+        }
+
+        // ============== 图生成 ==============
+
+        // ============== 图表生成（SVG） ==============
+
+        // 生成柱状图
+        function generateBarChart(title, xLabels, dataSets, width = 600, height = 350) {
+            const padding = { top: 40, right: 30, bottom: 60, left: 60 };
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+            
+            // 计算最大值
+            let maxValue = 0;
+            dataSets.forEach(ds => {
+                ds.data.forEach(v => { if (v > maxValue) maxValue = v; });
+            });
+            maxValue = maxValue * 1.1;
+            
+            const barGroupWidth = chartWidth / xLabels.length;
+            const barWidth = barGroupWidth / dataSets.length * 0.7;
+            
+            let svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" style="font-family: 'Times New Roman', SimSun, serif; font-size: 12px;">`;
+            
+            // 背景
+            svg += `<rect width="${width}" height="${height}" fill="#fff"/>`;
+            
+            // 标题
+            svg += `<text x="${width/2}" y="25" text-anchor="middle" font-size="14" font-weight="bold">${title}</text>`;
+            
+            // 网格线和Y轴刻度
+            const yTicks = 5;
+            for (let i = 0; i <= yTicks; i++) {
+                const y = padding.top + chartHeight - (chartHeight / yTicks) * i;
+                const value = (maxValue / yTicks * i).toFixed(2);
+                svg += `<line x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}" stroke="#e0e0e0" stroke-width="1"/>`;
+                svg += `<text x="${padding.left - 8}" y="${y + 4}" text-anchor="end" fill="#666">${value}</text>`;
+            }
+            
+            // X轴和Y轴
+            svg += `<line x1="${padding.left}" y1="${padding.top}" x2="${padding.left}" y2="${height - padding.bottom}" stroke="#333" stroke-width="1"/>`;
+            svg += `<line x1="${padding.left}" y1="${height - padding.bottom}" x2="${width - padding.right}" y2="${height - padding.bottom}" stroke="#333" stroke-width="1"/>`;
+            
+            // 柱子和X轴标签
+            const colors = ['#1976d2', '#ff9800', '#4caf50', '#e91e63', '#9c27b0'];
+            xLabels.forEach((label, i) => {
+                const x = padding.left + barGroupWidth * i + barGroupWidth / 2;
+                
+                dataSets.forEach((ds, j) => {
+                    const barX = x - barGroupWidth * 0.35 + barWidth * j;
+                    const barHeight = (ds.data[i] / maxValue) * chartHeight;
+                    const barY = padding.top + chartHeight - barHeight;
+                    svg += `<rect x="${barX}" y="${barY}" width="${barWidth}" height="${barHeight}" fill="${colors[j % colors.length]}" stroke="#333" stroke-width="0.5"/>`;
+                });
+                
+                svg += `<text x="${x}" y="${height - padding.bottom + 20}" text-anchor="middle" fill="#333">${label}</text>`;
+            });
+            
+            // 图例
+            if (dataSets.length > 1) {
+                const legendY = height - 15;
+                let legendX = padding.left;
+                dataSets.forEach((ds, i) => {
+                    svg += `<rect x="${legendX}" y="${legendY - 8}" width="12" height="12" fill="${colors[i % colors.length]}" stroke="#333" stroke-width="0.5"/>`;
+                    svg += `<text x="${legendX + 16}" y="${legendY + 2}" fill="#333">${ds.label}</text>`;
+                    legendX += ds.label.length * 12 + 30;
+                });
+            }
+            
+            svg += '</svg>';
+            return svg;
+        }
+
+        // 生成折线图
+        function generateLineChart(title, xLabels, dataSets, width = 600, height = 350) {
+            const padding = { top: 40, right: 30, bottom: 60, left: 60 };
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+            
+            // 计算最大值和最小值，确保有合理的范围
+            let maxValue = 0;
+            let minValue = Infinity;
+            for (let i = 0; i < dataSets.length; i++) {
+                for (let j = 0; j < dataSets[i].data.length; j++) {
+                    const v = dataSets[i].data[j];
+                    if (v > maxValue) maxValue = v;
+                    if (v < minValue) minValue = v;
+                }
+            }
+            
+            // 确保范围合理
+            if (minValue === maxValue) {
+                minValue = maxValue - 10;
+            }
+            const range = maxValue - minValue;
+            maxValue = maxValue + range * 0.15;
+            minValue = minValue - range * 0.15;
+            const valueRange = maxValue - minValue;
+            
+            const xStep = chartWidth / (xLabels.length - 1);
+            const colors = ['#1976d2', '#ff9800', '#4caf50', '#e91e63', '#9c27b0'];
+            
+            // 构建 SVG
+            let svg = '';
+            svg += '<svg width="' + width + '" height="' + height + '" xmlns="http://www.w3.org/2000/svg">';
+            svg += '<rect width="' + width + '" height="' + height + '" fill="#ffffff"/>';
+            
+            // 标题
+            svg += '<text x="' + (width/2) + '" y="25" text-anchor="middle" font-size="14" font-weight="bold" font-family="SimHei, sans-serif">' + title + '</text>';
+            
+            // 网格线和Y轴刻度
+            const yTicks = 5;
+            for (let i = 0; i <= yTicks; i++) {
+                const y = padding.top + chartHeight - (chartHeight / yTicks) * i;
+                const value = (minValue + valueRange / yTicks * i).toFixed(1);
+                svg += '<line x1="' + padding.left + '" y1="' + y + '" x2="' + (width - padding.right) + '" y2="' + y + '" stroke="#e0e0e0" stroke-width="1"/>';
+                svg += '<text x="' + (padding.left - 8) + '" y="' + (y + 4) + '" text-anchor="end" fill="#666666" font-size="11" font-family="Arial, sans-serif">' + value + '</text>';
+            }
+            
+            // 坐标轴
+            svg += '<line x1="' + padding.left + '" y1="' + padding.top + '" x2="' + padding.left + '" y2="' + (height - padding.bottom) + '" stroke="#333333" stroke-width="1"/>';
+            svg += '<line x1="' + padding.left + '" y1="' + (height - padding.bottom) + '" x2="' + (width - padding.right) + '" y2="' + (height - padding.bottom) + '" stroke="#333333" stroke-width="1"/>';
+            
+            // 绘制折线
+            for (let dsIdx = 0; dsIdx < dataSets.length; dsIdx++) {
+                const ds = dataSets[dsIdx];
+                const color = colors[dsIdx % colors.length];
+                let pathD = '';
+                
+                for (let i = 0; i < ds.data.length; i++) {
+                    const v = ds.data[i];
+                    const x = padding.left + xStep * i;
+                    const y = padding.top + chartHeight - ((v - minValue) / valueRange) * chartHeight;
+                    
+                    if (i === 0) {
+                        pathD += 'M ' + x.toFixed(2) + ' ' + y.toFixed(2);
+                    } else {
+                        pathD += ' L ' + x.toFixed(2) + ' ' + y.toFixed(2);
+                    }
+                }
+                
+                svg += '<path d="' + pathD + '" fill="none" stroke="' + color + '" stroke-width="2"/>';
+                
+                // 数据点
+                for (let i = 0; i < ds.data.length; i++) {
+                    const v = ds.data[i];
+                    const x = padding.left + xStep * i;
+                    const y = padding.top + chartHeight - ((v - minValue) / valueRange) * chartHeight;
+                    svg += '<circle cx="' + x.toFixed(2) + '" cy="' + y.toFixed(2) + '" r="3" fill="' + color + '" stroke="#ffffff" stroke-width="1"/>';
+                }
+            }
+            
+            // X轴标签
+            for (let i = 0; i < xLabels.length; i++) {
+                const x = padding.left + xStep * i;
+                svg += '<text x="' + x + '" y="' + (height - padding.bottom + 20) + '" text-anchor="middle" fill="#333333" font-size="11" font-family="SimSun, serif">' + xLabels[i] + '</text>';
+            }
+            
+            // 图例
+            if (dataSets.length > 1) {
+                let legendX = padding.left;
+                const legendY = height - 12;
+                for (let i = 0; i < dataSets.length; i++) {
+                    const color = colors[i % colors.length];
+                    svg += '<line x1="' + legendX + '" y1="' + (legendY - 4) + '" x2="' + (legendX + 20) + '" y2="' + (legendY - 4) + '" stroke="' + color + '" stroke-width="2"/>';
+                    svg += '<text x="' + (legendX + 24) + '" y="' + legendY + '" fill="#333333" font-size="11" font-family="SimSun, serif">' + dataSets[i].label + '</text>';
+                    legendX += dataSets[i].label.length * 12 + 40;
+                }
+            }
+            
+            svg += '</svg>';
+            return svg;
+        }
+
+        // 生成饼图
+        function generatePieChart(title, data, width = 500, height = 350) {
+            const cx = width * 0.35;
+            const cy = height / 2 + 10;
+            const radius = Math.min(width * 0.3, height * 0.35);
+            
+            // 计算总和
+            let total = 0;
+            for (let i = 0; i < data.length; i++) {
+                total += data[i].value;
+            }
+            if (total <= 0) total = 1;
+            
+            const colors = ['#1976d2', '#ff9800', '#4caf50', '#e91e63', '#9c27b0', '#00bcd4', '#ffeb3b', '#795548'];
+            
+            // 构建 SVG
+            let svg = '';
+            svg += '<svg width="' + width + '" height="' + height + '" xmlns="http://www.w3.org/2000/svg">';
+            svg += '<rect width="' + width + '" height="' + height + '" fill="#ffffff"/>';
+            
+            // 标题
+            svg += '<text x="' + (width/2) + '" y="25" text-anchor="middle" font-size="14" font-weight="bold" font-family="SimHei, sans-serif">' + title + '</text>';
+            
+            // 绘制饼图扇区
+            let startAngle = -Math.PI / 2; // 从12点钟方向开始
+            
+            for (let i = 0; i < data.length; i++) {
+                const d = data[i];
+                const angle = (d.value / total) * Math.PI * 2;
+                const endAngle = startAngle + angle;
+                
+                // 计算起点和终点坐标
+                const x1 = cx + radius * Math.cos(startAngle);
+                const y1 = cy + radius * Math.sin(startAngle);
+                const x2 = cx + radius * Math.cos(endAngle);
+                const y2 = cy + radius * Math.sin(endAngle);
+                
+                // 判断大圆弧还是小圆弧
+                const largeArc = angle > Math.PI ? 1 : 0;
+                
+                // 构建路径：移动到圆心 -> 画线到起点 -> 画圆弧到终点 -> 闭合
+                const pathD = 'M ' + cx + ' ' + cy + 
+                             ' L ' + x1.toFixed(2) + ' ' + y1.toFixed(2) + 
+                             ' A ' + radius + ' ' + radius + ' 0 ' + largeArc + ' 1 ' + x2.toFixed(2) + ' ' + y2.toFixed(2) + 
+                             ' Z';
+                
+                svg += '<path d="' + pathD + '" fill="' + colors[i % colors.length] + '" stroke="#ffffff" stroke-width="2"/>';
+                
+                // 百分比标签（只在扇区足够大时显示）
+                if (angle > 0.2) {
+                    const midAngle = startAngle + angle / 2;
+                    const labelX = cx + radius * 0.6 * Math.cos(midAngle);
+                    const labelY = cy + radius * 0.6 * Math.sin(midAngle);
+                    const percent = ((d.value / total) * 100).toFixed(0);
+                    svg += '<text x="' + labelX.toFixed(2) + '" y="' + labelY.toFixed(2) + '" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-size="11" font-weight="bold" font-family="Arial, sans-serif">' + percent + '%</text>';
+                }
+                
+                startAngle = endAngle;
+            }
+            
+            // 图例
+            const legendX = width * 0.62;
+            let legendY = 55;
+            for (let i = 0; i < data.length; i++) {
+                svg += '<rect x="' + legendX + '" y="' + legendY + '" width="14" height="14" fill="' + colors[i % colors.length] + '" stroke="#333333" stroke-width="0.5"/>';
+                svg += '<text x="' + (legendX + 20) + '" y="' + (legendY + 11) + '" fill="#333333" font-size="11" font-family="SimSun, serif">' + data[i].label + '</text>';
+                legendY += 24;
+            }
+            
+            svg += '</svg>';
+            return svg;
+        }
+
+        // 生成面积图
+        function generateAreaChart(title, xLabels, dataSets, width = 600, height = 350) {
+            const padding = { top: 40, right: 120, bottom: 50, left: 60 };
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+            
+            const colors = ['#1976d2', '#ff9800', '#4caf50', '#e91e63', '#9c27b0'];
+            
+            // 计算Y轴范围
+            let maxVal = 0;
+            dataSets.forEach(ds => {
+                ds.data.forEach(v => { if (v > maxVal) maxVal = v; });
+            });
+            maxVal = maxVal * 1.2;
+            
+            const yStep = maxVal / 5;
+            const xStep = chartWidth / (xLabels.length - 1);
+            
+            let svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">`;
+            svg += `<rect width="${width}" height="${height}" fill="#fafafa"/>`;
+            
+            // 标题
+            svg += `<text x="${width/2}" y="25" text-anchor="middle" font-size="15" font-weight="bold" fill="#333">${title}</text>`;
+            
+            // Y轴刻度和网格线
+            for (let i = 0; i <= 5; i++) {
+                const y = padding.top + chartHeight - (i / 5) * chartHeight;
+                const val = (i * yStep).toFixed(1);
+                svg += `<line x1="${padding.left}" y1="${y}" x2="${padding.left + chartWidth}" y2="${y}" stroke="#e0e0e0" stroke-width="1"/>`;
+                svg += `<text x="${padding.left - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="#666">${val}</text>`;
+            }
+            
+            // X轴刻度
+            xLabels.forEach((label, i) => {
+                const x = padding.left + i * xStep;
+                svg += `<text x="${x}" y="${padding.top + chartHeight + 20}" text-anchor="middle" font-size="11" fill="#666">${label}</text>`;
+            });
+            
+            // 坐标轴
+            svg += `<line x1="${padding.left}" y1="${padding.top}" x2="${padding.left}" y2="${padding.top + chartHeight}" stroke="#999" stroke-width="1"/>`;
+            svg += `<line x1="${padding.left}" y1="${padding.top + chartHeight}" x2="${padding.left + chartWidth}" y2="${padding.top + chartHeight}" stroke="#999" stroke-width="1"/>`;
+            
+            // 绘制面积和曲线
+            dataSets.forEach((ds, idx) => {
+                const color = colors[idx % colors.length];
+                const fillColor = color + '33'; // 半透明填充
+                
+                let pathD = '';
+                let areaD = '';
+                
+                ds.data.forEach((val, i) => {
+                    const x = padding.left + i * xStep;
+                    const y = padding.top + chartHeight - (val / maxVal) * chartHeight;
+                    if (i === 0) {
+                        pathD += `M ${x} ${y}`;
+                        areaD += `M ${x} ${padding.top + chartHeight} L ${x} ${y}`;
+                    } else {
+                        pathD += ` L ${x} ${y}`;
+                        areaD += ` L ${x} ${y}`;
+                    }
+                });
+                
+                // 闭合面积路径
+                const lastX = padding.left + (ds.data.length - 1) * xStep;
+                areaD += ` L ${lastX} ${padding.top + chartHeight} Z`;
+                
+                svg += `<path d="${areaD}" fill="${fillColor}"/>`;
+                svg += `<path d="${pathD}" fill="none" stroke="${color}" stroke-width="2"/>`;
+            });
+            
+            // 图例
+            let legendY = padding.top + 10;
+            dataSets.forEach((ds, idx) => {
+                const color = colors[idx % colors.length];
+                svg += `<rect x="${padding.left + chartWidth + 20}" y="${legendY}" width="14" height="14" fill="${color}"/>`;
+                svg += `<text x="${padding.left + chartWidth + 40}" y="${legendY + 11}" font-size="12" fill="#333">${ds.label}</text>`;
+                legendY += 24;
+            });
+            
+            svg += '</svg>';
+            return svg;
+        }
+
+        // 生成散点图
+        function generateScatterChart(title, xLabel, yLabel, dataSets, width = 600, height = 350) {
+            const padding = { top: 40, right: 120, bottom: 50, left: 60 };
+            const chartWidth = width - padding.left - padding.right;
+            const chartHeight = height - padding.top - padding.bottom;
+            
+            const colors = ['#1976d2', '#ff9800', '#4caf50', '#e91e63', '#9c27b0'];
+            
+            // 计算X、Y轴范围
+            let maxX = 0, maxY = 0;
+            dataSets.forEach(ds => {
+                ds.data.forEach(p => {
+                    if (p.x > maxX) maxX = p.x;
+                    if (p.y > maxY) maxY = p.y;
+                });
+            });
+            maxX = maxX * 1.2;
+            maxY = maxY * 1.2;
+            
+            const yStep = maxY / 5;
+            const xStep = maxX / 5;
+            
+            let svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">`;
+            svg += `<rect width="${width}" height="${height}" fill="#fafafa"/>`;
+            
+            // 标题
+            svg += `<text x="${width/2}" y="25" text-anchor="middle" font-size="15" font-weight="bold" fill="#333">${title}</text>`;
+            
+            // Y轴刻度和网格线
+            for (let i = 0; i <= 5; i++) {
+                const y = padding.top + chartHeight - (i / 5) * chartHeight;
+                const val = (i * yStep).toFixed(1);
+                svg += `<line x1="${padding.left}" y1="${y}" x2="${padding.left + chartWidth}" y2="${y}" stroke="#e0e0e0" stroke-width="1"/>`;
+                svg += `<text x="${padding.left - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="#666">${val}</text>`;
+            }
+            
+            // X轴刻度
+            for (let i = 0; i <= 5; i++) {
+                const x = padding.left + (i / 5) * chartWidth;
+                const val = (i * xStep).toFixed(1);
+                svg += `<text x="${x}" y="${padding.top + chartHeight + 20}" text-anchor="middle" font-size="11" fill="#666">${val}</text>`;
+            }
+            
+            // 坐标轴
+            svg += `<line x1="${padding.left}" y1="${padding.top}" x2="${padding.left}" y2="${padding.top + chartHeight}" stroke="#999" stroke-width="1"/>`;
+            svg += `<line x1="${padding.left}" y1="${padding.top + chartHeight}" x2="${padding.left + chartWidth}" y2="${padding.top + chartHeight}" stroke="#999" stroke-width="1"/>`;
+            
+            // 轴标签
+            svg += `<text x="${padding.left + chartWidth / 2}" y="${height - 10}" text-anchor="middle" font-size="12" fill="#666">${xLabel}</text>`;
+            svg += `<text x="15" y="${padding.top + chartHeight / 2}" text-anchor="middle" font-size="12" fill="#666" transform="rotate(-90, 15, ${padding.top + chartHeight / 2})">${yLabel}</text>`;
+            
+            // 绘制散点
+            dataSets.forEach((ds, idx) => {
+                const color = colors[idx % colors.length];
+                ds.data.forEach(p => {
+                    const x = padding.left + (p.x / maxX) * chartWidth;
+                    const y = padding.top + chartHeight - (p.y / maxY) * chartHeight;
+                    svg += `<circle cx="${x}" cy="${y}" r="4" fill="${color}" opacity="0.7"/>`;
+                });
+            });
+            
+            // 图例
+            let legendY = padding.top + 10;
+            dataSets.forEach((ds, idx) => {
+                const color = colors[idx % colors.length];
+                svg += `<circle cx="${padding.left + chartWidth + 27}" cy="${legendY + 7}" r="5" fill="${color}" opacity="0.7"/>`;
+                svg += `<text x="${padding.left + chartWidth + 40}" y="${legendY + 11}" font-size="12" fill="#333">${ds.label}</text>`;
+                legendY += 24;
+            });
+            
+            svg += '</svg>';
+            return svg;
+        }
+
+        // ============== 图表生成（整合） ==============
+
+        function generateFigure(kw1, kw2, kw3, figNum) {
+            const figureTypes = ['bar', 'line', 'pie', 'area', 'scatter'];
+            const figureType = figureTypes[randomInt(0, figureTypes.length - 1)];
+            
+            let title = '';
+            let svgContent = '';
+            
+            if (figureType === 'bar') {
+                title = `不同条件下${kw2}的对比柱状图`;
+                const xLabels = ['组1', '组2', '组3', '组4', '组5', '组6'];
+                const dataSets = [
+                    { label: kw1, data: xLabels.map(() => randomFloat(10, 100, 1)) },
+                    { label: kw3, data: xLabels.map(() => randomFloat(10, 100, 1)) }
+                ];
+                svgContent = generateBarChart(title, xLabels, dataSets);
+            } else if (figureType === 'line') {
+                title = `${kw1}对${kw2}的影响曲线`;
+                const xLabels = ['0', '2', '4', '6', '8', '10', '12', '14'];
+                const dataSets = [
+                    { label: '实验组', data: xLabels.map((_, i) => 20 + i * 8 + randomFloat(-5, 5, 1)) },
+                    { label: '对照组', data: xLabels.map((_, i) => 15 + i * 5 + randomFloat(-3, 3, 1)) }
+                ];
+                svgContent = generateLineChart(title, xLabels, dataSets);
+            } else if (figureType === 'area') {
+                title = `${kw1}与${kw3}的累积效应对比`;
+                const xLabels = ['第1天', '第2天', '第3天', '第4天', '第5天', '第6天', '第7天'];
+                const dataSets = [
+                    { label: kw1, data: xLabels.map((_, i) => 10 + i * 12 + randomFloat(-5, 5, 1)) },
+                    { label: kw3, data: xLabels.map((_, i) => 5 + i * 8 + randomFloat(-3, 3, 1)) }
+                ];
+                svgContent = generateAreaChart(title, xLabels, dataSets);
+            } else if (figureType === 'scatter') {
+                title = `${kw1}与${kw2}的相关性散点图`;
+                const dataSets = [
+                    { 
+                        label: '样本数据', 
+                        data: Array.from({length: 30}, () => ({
+                            x: randomFloat(10, 100, 1),
+                            y: randomFloat(10, 100, 1)
+                        }))
+                    }
+                ];
+                svgContent = generateScatterChart(title, kw1, kw2, dataSets);
+            } else {
+                title = `${kw2}的成分占比分析`;
+                const data = [
+                    { label: kw1, value: randomFloat(20, 40, 1) },
+                    { label: kw3, value: randomFloat(15, 30, 1) },
+                    { label: '其他', value: randomFloat(10, 25, 1) },
+                    { label: '杂质', value: randomFloat(5, 15, 1) },
+                    { label: '未知', value: randomFloat(3, 10, 1) }
+                ];
+                svgContent = generatePieChart(title, data);
+            }
+            
+            let figure = `<div class="figure-container" style="text-align: center; margin: 20px 0;">\n`;
+            figure += `${svgContent}\n`;
+            figure += `<div class="figure-caption" style="text-align: center; margin-top: 8px; font-size: 13px;">图${figNum} ${title}</div>\n`;
+            figure += `</div>\n\n`;
+            
+            return figure;
+        }
+
+        // ============== 公式生成 ==============
+
+        function generateFormula(kw1, kw2, formulaNum) {
+            const formulas = [
+                `E = mc²`,
+                `S = k_B ln Ω`,
+                `Δx · Δp ≥ ℏ/2`,
+                `F = ma`,
+                `PV = nRT`,
+                `λ = h/p`,
+                `∇·E = ρ/ε₀`,
+                `∇×B = μ₀J + μ₀ε₀∂E/∂t`,
+                `iℏ∂ψ/∂t = Ĥψ`,
+                `G_μν = 8πG/c⁴ T_μν`,
+                `Z = Σ e^(-βE_i)`,
+                `ρ(E) = (2π)^(-d/2) (m/ℏ²)^(d/2) E^(d/2-1)`
+            ];
+            
+            const formula = randomChoice(formulas);
+            
+            return `<div class="formula">${formula}<span class="formula-number">(${formulaNum})</span></div>\n\n`;
+        }
+
+        // ============== 参考文献生成 ==============
+
+        function generateChineseReference() {
+            // 中文参考文献
+            const authors = [];
+            const nAuthors = randomInt(1, 4);
+            for (let i = 0; i < nAuthors; i++) {
+                authors.push(randomChoice(AUTHOR_NAMES));
+            }
+            
+            const authorStr = authors.join(', ');
+            
+            const titles = [
+                `${randomChoice(KEYWORD_POOLS.physics)}的${randomChoice(KEYWORD_POOLS.physics)}研究`,
+                `基于${randomChoice(KEYWORD_POOLS.tech)}的${randomChoice(KEYWORD_POOLS.physics)}分析`,
+                `${randomChoice(KEYWORD_POOLS.food)}的${randomChoice(KEYWORD_POOLS.academic)}特性研究`,
+                `论${randomChoice(KEYWORD_POOLS.social)}的${randomChoice(KEYWORD_POOLS.physics)}机制`,
+                `${randomChoice(KEYWORD_POOLS.physics)}视角下的${randomChoice(KEYWORD_POOLS.food)}研究`,
+                `${randomChoice(KEYWORD_POOLS.academic)}在${randomChoice(KEYWORD_POOLS.social)}中的应用`,
+                `${randomChoice(ENGLISH_TERMS)}与${randomChoice(KEYWORD_POOLS.physics)}的相关性研究`,
+                `基于${randomChoice(CHAOS_WORDS)}的${randomChoice(KEYWORD_POOLS.food)}分析框架`,
+                `${randomChoice(KEYWORD_POOLS.tech)}背景下${randomChoice(KEYWORD_POOLS.social)}的${randomChoice(CHAOS_WORDS)}研究`
+            ];
+            
+            const title = randomChoice(titles);
+            const journal = randomChoice(JOURNALS);
+            const year = randomInt(1980, 2025);
+            const volume = randomInt(1, 100);
+            const issue = randomInt(1, 12);
+            const pages = `${randomInt(1, 100)}-${randomInt(101, 200)}`;
+            
+            return `${authorStr}. ${title}[J]. ${journal}, ${year}, ${volume}(${issue}): ${pages}.`;
+        }
+
+        function generateEnglishReference() {
+            // 英文参考文献
+            const englishFirstNames = ['John', 'Michael', 'David', 'Robert', 'James', 'William', 'Richard', 'Joseph', 'Thomas', 'Charles', 'Mary', 'Patricia', 'Jennifer', 'Linda', 'Elizabeth', 'Barbara', 'Susan', 'Jessica', 'Sarah', 'Karen'];
+            const englishLastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin'];
+            
+            const authors = [];
+            const nAuthors = randomInt(1, 4);
+            for (let i = 0; i < nAuthors; i++) {
+                const firstName = randomChoice(englishFirstNames);
+                const lastName = randomChoice(englishLastNames);
+                authors.push(`${lastName} ${firstName.charAt(0)}.`);
+            }
+            
+            const authorStr = authors.join(', ');
+            
+            const englishKeywords1 = ['quantum', 'nonlinear', 'statistical', 'thermodynamic', 'chaotic', 'fractal', 'stochastic', 'dynamical', 'topological', 'computational', 'emergent', 'collective', 'adaptive', 'complex', 'critical'];
+            const englishKeywords2 = ['analysis', 'study', 'investigation', 'exploration', 'examination', 'research', 'approach', 'method', 'technique', 'framework', 'model', 'theory', 'perspective', 'insight', 'review'];
+            const englishKeywords3 = ['systems', 'phenomena', 'behavior', 'dynamics', 'properties', 'characteristics', 'mechanisms', 'processes', 'structures', 'patterns', 'transitions', 'fluctuations', 'correlations', 'interactions', 'networks'];
+            
+            const title = `${randomChoice(englishKeywords1)} ${randomChoice(englishKeywords3)} ${randomChoice(englishKeywords2)}`;
+            const titleCapitalized = title.charAt(0).toUpperCase() + title.slice(1);
+            
+            const englishJournals = [
+                'Journal of Nonsense Physics',
+                'International Journal of Chaotic Systems',
+                'Physics Letters A',
+                'Physical Review Letters',
+                'Nature',
+                'Science',
+                'Applied Physics Letters',
+                'Journal of Statistical Mechanics',
+                'Chaos, Solitons & Fractals',
+                'Physica A: Statistical Mechanics and its Applications',
+                'Physical Review E',
+                'New Journal of Physics',
+                'Europhysics Letters',
+                'Journal of Complex Networks',
+                'PLOS ONE'
+            ];
+            
+            const journal = randomChoice(englishJournals);
+            const year = randomInt(1980, 2025);
+            const volume = randomInt(1, 200);
+            const pages = `${randomInt(1, 20)}-${randomInt(21, 50)}`;
+            
+            return `${authorStr} ${titleCapitalized}[J]. ${journal}, ${year}, ${volume}: ${pages}.`;
+        }
+
+        // ============== 致谢生成 ==============
+
+        function generateThanks() {
+            const thanks = [
+                `感谢${randomChoice(['实验室的量子猫', '桌上的混沌多肉', '鱼缸里的熵增金鱼', '窗台上的薛定谔绿萝', '键盘上的随机按键精灵', '鼠标垫下的隐藏维度生物', '显示器里的像素小精灵'])}在${randomChoice(['实验过程中的量子纠缠陪伴', '精神上的高维支持', '提供的跨维度灵感', '关键时刻的卖萌干扰', '踩出的随机字符成为关键数据', '把论文改得更加混沌'])}为本研究提供了不可替代的帮助。`,
+                `感谢${randomChoice(['楼下的量子早餐摊', '第四维度的外卖小哥', '平行宇宙的咖啡店', '暗物质便利店', '虫洞快递站', '熵增保洁公司', '时间循环物业公司'])}坚持${randomChoice(['准时出现在时空裂缝', '超光速配送', '制作叠加态咖啡', '24小时跨维度营业', '微笑服务每个平行宇宙', '保持熵减状态'])}所创造的良好研究环境。`,
+                `感谢${randomChoice(['国际胡说八道研究基金会', '虚拟科学研究基金', '不知名的跨维度审稿人', '某神秘混沌组织', '平行宇宙研究院', '量子早餐动力学实验室', '熵增爱好者协会', '暗物质研究中心', '虫洞交通管理局', '时间旅行爱好者俱乐部'])}${randomChoice(['忽略了本研究的初稿', '没有发现本研究的逻辑漏洞', '给予了宝贵的胡说八道意见', '提供了量子经费支持', '颁发了最佳胡说八道奖', '容忍了我们的混沌', '把我们的论文翻译成了12种外星语言'])}，这赋予了作者继续深挖的勇气。`,
+                `特别感谢${randomChoice(['量子力学的不确定性', '热力学第二定律的仁慈', '混沌理论的蝴蝶', '墨菲定律的眷顾', '测不准原理的宽容', '熵增定律的缓慢', '蝴蝶效应的翅膀', '平行宇宙的另一种可能'])}，没有它们就没有这篇论文的存在。`,
+                `感谢${randomChoice(['掉的第N根头发', '喝掉的第N杯量子咖啡', '吃掉的第N份叠加态外卖', '坏掉的第N个键盘', '报废的第N个鼠标', '用光的第N根笔芯', '熬的第N个夜', '第N次想放弃的念头'])}，它们是本研究的无名英雄，见证了这篇论文的诞生。`,
+                `还要感谢${randomChoice(['平行宇宙的另一个我', '未来的自己发来的警告', '过去的自己埋下的伏笔', '想象中的第N个审稿人', '内心的小恶魔', '脑海中的第N个声音', '梦中的神秘导师', '潜意识里的混沌因子'])}，是你们让这篇论文变得更加完整、更加胡说八道。`,
+                `感谢${randomChoice(['量子互联网', '混沌搜索引擎', '胡说八道百科', '跨维度问答社区', '高维视频网站', '暗网社交平台', '虫洞论坛', '时间循环留言板'])}，让我能够${randomChoice(['快速获取跨维度信息', '找到各种奇怪的平行宇宙资料', '浪费了大量时间在摸鱼上', '在熵增中获得灵感', '认识到自己的无知是无限的', '和外星人交流学术问题'])}。`,
+                `感谢${randomChoice(['我的量子床', '我的叠加态枕头', '我的熵增被子', '我的混沌沙发', '我的时间循环椅子', '我的虫洞毯子', '我的梦境床垫'])}，在我${randomChoice(['写不下去的时候', '需要跨维度休息的时候', '想逃避现实的时候', '卡壳到怀疑人生的时候', '想穿越到未来看答案的时候'])}提供了温暖的港湾。`,
+                `感谢${randomChoice(['暗能量', '暗物质', '希格斯场', '量子涨落', '真空极化', '中微子振荡', '夸克禁闭', '引力波', '宇宙微波背景辐射', '黑洞蒸发'])}，没有它们我根本无法完成这篇论文，甚至连宇宙都不存在。`,
+                `最后，感谢${randomChoice(['正在读这篇论文的你', '跨维度的审稿人', '平行宇宙的读者', '外星评委老师', '高维空间的导师', '时间旅行者', '量子观察者'])}，${randomChoice(['愿意花时间阅读这篇胡说八道', '没有当场把论文扔进虫洞', '给了我们一个证明混沌的机会', '忍受了这么多废话', '在无数平行宇宙中选择了这一篇', '愿意相信这一切都是有意义的'])}。`
+            ];
+            
+            let thanksText = '<h2>致  谢</h2>\n\n';
+            const nThanks = randomInt(3, 5);
+            for (let i = 0; i < nThanks; i++) {
+                thanksText += `<p>${randomChoice(thanks)}</p>\n`;
+            }
+            
+            return `<div class="acknowledgment">\n${thanksText}\n</div>\n\n`;
+        }
+
+        // ============== 主生成函数 ==============
+
+        let currentPaper = null;
+
+        function generatePaper() {
+            const loading = document.getElementById('loading');
+            loading.classList.add('active');
+            
+            setTimeout(() => {
+                const keywordsInput = document.getElementById('keywordsInput').value;
+                const paperType = document.getElementById('paperType').value;
+                const nonsenseLevel = 5; // 默认胡说八道程度
+                const paperLength = document.getElementById('paperLength').value;
+                
+                const [kw1, kw2, kw3] = processKeywords(keywordsInput);
+                
+                const lengthMultiplier = { short: 0.7, medium: 1, long: 1.5 }[paperLength];
+                const chapters = CHAPTER_STRUCTURES[paperType] || CHAPTER_STRUCTURES.journal;
+                
+                // 生成标题
+                const title = generateTitle(kw1, kw2, kw3);
+                
+                // 生成作者和机构
+                const nAuthors = paperType === 'doctor' ? randomInt(4, 6) : randomInt(2, 4);
+                const { authors, departments } = generateAuthorsAndDepts(nAuthors);
+                
+                // 生成摘要
+                const abstract = generateAbstract(kw1, kw2, kw3, nonsenseLevel);
+                
+                // 生成关键词
+                const paperKeywords = generateKeywords(kw1, kw2, kw3);
+                
+                // 生成正文
+                let bodyContent = '';
+                let totalTableCount = 0;
+                let totalFigureCount = 0;
+                let totalFormulaCount = 0;
+                
+                chapters.forEach((chapter, chIdx) => {
+                    bodyContent += `## ${chIdx + 1}. ${chapter.title}\n\n`;
+                    
+                    let chapterTableCount = 0;
+                    let chapterFigureCount = 0;
+                    let chapterFormulaCount = 0;
+                    
+                    chapter.sections.forEach((section, secIdx) => {
+                        bodyContent += `### ${chIdx + 1}.${secIdx + 1} ${section}\n\n`;
+                        
+                        // 生成段落
+                        const nParagraphs = Math.round(randomInt(2, 4) * lengthMultiplier);
+                        for (let p = 0; p < nParagraphs; p++) {
+                            bodyContent += generateParagraph(kw1, kw2, kw3, section, chapter.title, nonsenseLevel);
+                        }
+                        
+                        // 随机插入表格
+                        if (Math.random() < 0.2 * lengthMultiplier) {
+                            chapterTableCount++;
+                            totalTableCount++;
+                            bodyContent += generateTable(kw1, kw2, kw3, `${chIdx + 1}-${chapterTableCount}`);
+                        }
+                        
+                        // 随机插入图
+                        if (Math.random() < 0.25 * lengthMultiplier) {
+                            chapterFigureCount++;
+                            totalFigureCount++;
+                            bodyContent += generateFigure(kw1, kw2, kw3, `${chIdx + 1}-${chapterFigureCount}`);
+                        }
+                        
+                        // 随机插入公式
+                        if (Math.random() < 0.35 * lengthMultiplier) {
+                            chapterFormulaCount++;
+                            totalFormulaCount++;
+                            bodyContent += generateFormula(kw1, kw2, `${chIdx + 1}-${chapterFormulaCount}`);
+                        }
+                    });
+                });
+                
+                // 生成参考文献（中文在前，英文在后）
+                const nRefs = Math.round(randomInt(15, 35) * lengthMultiplier);
+                const nChineseRefs = Math.round(nRefs * 0.6);
+                const nEnglishRefs = nRefs - nChineseRefs;
+                
+                const references = [];
+                
+                // 中文参考文献
+                for (let i = 0; i < nChineseRefs; i++) {
+                    references.push(`[${i + 1}] ${generateChineseReference()}`);
+                }
+                
+                // 英文参考文献
+                for (let i = 0; i < nEnglishRefs; i++) {
+                    references.push(`[${nChineseRefs + i + 1}] ${generateEnglishReference()}`);
+                }
+                
+                bodyContent += `## 参考文献\n\n`;
+                bodyContent += `<div class="references">\n`;
+                references.forEach(ref => {
+                    bodyContent += `<p>${ref}</p>\n`;
+                });
+                bodyContent += `</div>\n\n`;
+                
+                // 生成致谢
+                bodyContent += generateThanks();
+                
+                // 统计字数
+                const wordCount = bodyContent.replace(/<[^>]*>/g, '').length;
+                
+                // 保存当前论文
+                currentPaper = {
+                    title,
+                    authors,
+                    departments,
+                    abstract,
+                    keywords: paperKeywords,
+                    bodyContent,
+                    stats: {
+                        chapters: chapters.length,
+                        tables: totalTableCount,
+                        figures: totalFigureCount,
+                        formulas: totalFormulaCount,
+                        references: nRefs,
+                        words: wordCount
+                    }
+                };
+                
+                // 渲染论文
+                renderPaper(currentPaper);
+                
+                loading.classList.remove('active');
+            }, 500);
+        }
+
+        // ============== 渲染函数 ==============
+
+        function renderPaper(paper) {
+            document.getElementById('emptyState').style.display = 'none';
+            const contentDiv = document.getElementById('paperContent');
+            contentDiv.style.display = 'block';
+            
+            let html = '';
+            
+            // 标题
+            html += `<h1 align="center">${paper.title}</h1>\n`;
+            
+            // 作者
+            const authorStr = paper.authors.map((a, i) => `${a}<sup>${(i % paper.departments.length) + 1}</sup>`).join('，');
+            html += `<div class="authors">${authorStr}</div>\n`;
+            
+            // 单位
+            const deptStr = paper.departments.map((d, i) => `（${i + 1}. ${d}）`).join('');
+            html += `<div class="affiliations">${deptStr}</div>\n`;
+            
+            // 摘要
+            html += `<div class="abstract">\n`;
+            html += `<p><strong>摘要：</strong>${paper.abstract}</p>\n`;
+            html += `</div>\n`;
+            
+            // 关键词
+            html += `<div class="keywords"><strong>关键词：</strong>${paper.keywords.join('；')}</div>\n`;
+            
+            // 正文
+            html += marked.parse(paper.bodyContent);
+            
+            contentDiv.innerHTML = html;
+        }
+
+        // ============== 工具函数 ==============
+
+        function setExample(text) {
+            document.getElementById('keywordsInput').value = text;
+        }
+
+        // ============== 导出 Word ==============
+
+        function exportWord() {
+            if (!currentPaper) {
+                alert('请先生成论文');
+                return;
+            }
+            
+            // 先把 SVG 转成图片，确保 Word 能显示
+            const paperContent = document.getElementById('paperContent');
+            const svgs = paperContent.querySelectorAll('svg');
+            
+            // 转换所有 SVG 为图片（异步）
+            const convertPromises = [];
+            const svgReplacements = [];
+            
+            svgs.forEach((svg, index) => {
+                const promise = new Promise((resolve) => {
+                    const svgData = new XMLSerializer().serializeToString(svg);
+                    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+                    const url = URL.createObjectURL(svgBlob);
+                    
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = parseInt(svg.getAttribute('width')) || 600;
+                        canvas.height = parseInt(svg.getAttribute('height')) || 350;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        const pngData = canvas.toDataURL('image/png');
+                        URL.revokeObjectURL(url);
+                        
+                        svgReplacements[index] = {
+                            svg: svg,
+                            pngData: pngData,
+                            width: canvas.width,
+                            height: canvas.height
+                        };
+                        resolve();
+                    };
+                    img.onerror = function() {
+                        // 如果转换失败，就保留原 SVG
+                        svgReplacements[index] = { svg: svg, failed: true };
+                        URL.revokeObjectURL(url);
+                        resolve();
+                    };
+                    img.src = url;
+                });
+                convertPromises.push(promise);
+            });
+            
+            Promise.all(convertPromises).then(() => {
+                // 临时替换 SVG 为图片
+                svgReplacements.forEach(item => {
+                    if (!item.failed) {
+                        const img = document.createElement('img');
+                        img.src = item.pngData;
+                        img.width = item.width;
+                        img.height = item.height;
+                        img.style.maxWidth = '100%';
+                        item.svg.parentNode.replaceChild(img, item.svg);
+                        item._replacedWith = img;
+                    }
+                });
+                
+                // 获取替换后的 HTML
+                const content = document.getElementById('paperContent').innerHTML;
+                
+                // 恢复 SVG
+                svgReplacements.forEach(item => {
+                    if (!item.failed && item._replacedWith) {
+                        item._replacedWith.parentNode.replaceChild(item.svg, item._replacedWith);
+                    }
+                });
+                
+                // 生成 Word 文档
+                const htmlContent = `
+<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <!--[if gte mso 9]>
+    <xml>
+        <w:WordDocument>
+            <w:View>Print</w:View>
+            <w:Zoom>100</w:Zoom>
+            <w:DoNotOptimizeForBrowser/>
+        </w:WordDocument>
+    </xml>
+    <![endif]-->
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 2.5cm 2.5cm 2.5cm 2.5cm;
+            mso-header-margin: .5in;
+            mso-footer-margin: .5in;
+            mso-paper-source: 0;
+        }
+        div.Section1 {
+            page: Section1;
+        }
+        body { 
+            font-family: 'SimSun', '宋体', serif; 
+            font-size: 12pt; 
+            line-height: 18pt;
+            margin: 0;
+            padding: 0;
+            text-align: justify;
+            text-justify: inter-ideograph;
+            mso-line-height-rule: at-least;
+            mso-line-spacing: 18pt;
+            mso-font-kerning: 1pt;
+            mso-ascii-font-family: 'Times New Roman';
+            mso-hansi-font-family: 'Times New Roman';
+            mso-bidi-font-family: 'Times New Roman';
+            mso-fareast-font-family: 'SimSun';
+        }
+        h1 { 
+            font-size: 16pt; 
+            font-weight: bold; 
+            text-align: center !important;
+            mso-para-margin-top: 0;
+            mso-para-margin-bottom: 24pt;
+            mso-para-margin-left: 0;
+            mso-para-margin-right: 0;
+            font-family: 'SimHei', '黑体', sans-serif;
+            margin: 0 auto 24pt auto;
+            letter-spacing: 2pt;
+            mso-ascii-font-family: 'Arial';
+            mso-hansi-font-family: 'Arial';
+            mso-bidi-font-family: 'Arial';
+            mso-fareast-font-family: 'SimHei';
+            mso-pagination: widow-orphan;
+            mso-outline-level: 1;
+            display: block;
+            width: 100%;
+        }
+        h2 { 
+            font-size: 14pt; 
+            font-weight: bold; 
+            font-family: 'SimHei', '黑体', sans-serif;
+            margin-top: 20pt;
+            margin-bottom: 10pt;
+            mso-ascii-font-family: 'Arial';
+            mso-hansi-font-family: 'Arial';
+            mso-bidi-font-family: 'Arial';
+            mso-fareast-font-family: 'SimHei';
+        }
+        h3 { 
+            font-size: 12pt; 
+            font-weight: bold; 
+            font-family: 'SimHei', '黑体', sans-serif;
+            margin-top: 16pt;
+            margin-bottom: 8pt;
+            mso-ascii-font-family: 'Arial';
+            mso-hansi-font-family: 'Arial';
+            mso-bidi-font-family: 'Arial';
+            mso-fareast-font-family: 'SimHei';
+        }
+        h4 { 
+            font-size: 12pt; 
+            font-weight: bold; 
+            font-family: 'SimHei', '黑体', sans-serif;
+            margin-top: 12pt;
+            margin-bottom: 6pt;
+            mso-ascii-font-family: 'Arial';
+            mso-hansi-font-family: 'Arial';
+            mso-bidi-font-family: 'Arial';
+            mso-fareast-font-family: 'SimHei';
+        }
+        p { 
+            text-indent: 2em; 
+            text-align: justify;
+            margin: 0 0 6pt 0;
+            text-justify: inter-ideograph;
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse;
+            margin: 12pt 0;
+            font-size: 10.5pt;
+        }
+        th, td { 
+            border: 1px solid #000; 
+            padding: 6pt 8pt; 
+            text-align: center;
+        }
+        th { 
+            font-weight: bold;
+            background: #f5f5f5;
+            font-family: 'SimHei', '黑体', sans-serif;
+        }
+        .authors { 
+            text-align: center; 
+            font-size: 12pt; 
+            font-family: 'SimHei', '黑体', sans-serif;
+            margin-bottom: 8pt;
+            letter-spacing: 1pt;
+        }
+        .affiliations { 
+            text-align: center; 
+            font-size: 10.5pt; 
+            font-style: normal;
+            color: #333;
+            margin-bottom: 20pt;
+            font-family: 'SimSun', '宋体', serif;
+        }
+        .abstract { 
+            margin: 0 0 12pt 0;
+            padding: 0;
+            font-size: 12pt;
+        }
+        .abstract-title {
+            font-weight: bold;
+            font-family: 'SimHei', '黑体', sans-serif;
+        }
+        .abstract p {
+            text-indent: 2em;
+            margin-bottom: 0;
+        }
+        .keywords { 
+            margin-bottom: 24pt;
+            padding-bottom: 0;
+            border-bottom: none;
+            font-size: 12pt;
+        }
+        .keywords-title {
+            font-weight: bold;
+            font-family: 'SimHei', '黑体', sans-serif;
+        }
+        .formula { 
+            text-align: center; 
+            margin: 12pt 0; 
+            font-family: 'Times New Roman', 'Times', serif; 
+            font-style: italic;
+            font-size: 12pt;
+            position: relative;
+        }
+        .formula-number {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            font-style: normal;
+            font-family: 'SimSun', '宋体', serif;
+        }
+        .table-caption { 
+            text-align: center; 
+            font-weight: bold; 
+            margin-bottom: 6pt;
+            margin-top: 12pt;
+            font-size: 10.5pt;
+            font-family: 'SimHei', '黑体', sans-serif;
+        }
+        .figure-container { 
+            text-align: center; 
+            margin: 12pt 0;
+        }
+        .figure-caption { 
+            text-align: center; 
+            font-weight: bold; 
+            margin-top: 6pt; 
+            margin-bottom: 12pt;
+            font-size: 10.5pt;
+            font-family: 'SimHei', '黑体', sans-serif;
+        }
+        .references { 
+            font-size: 10.5pt;
+            line-height: 1.6;
+            font-family: 'SimSun', '宋体', 'Times New Roman', serif;
+        }
+        .references p { 
+            text-indent: 0; 
+            padding-left: 2em; 
+            text-indent: -2em;
+            margin: 0 0 4pt 0;
+            text-align: justify;
+        }
+        .acknowledgment { 
+            margin-top: 24pt;
+            padding-top: 0;
+            border-top: none;
+            font-size: 12pt;
+            font-family: 'SimSun', '宋体', serif;
+        }
+        .acknowledgment h2 {
+            font-size: 14pt;
+            font-weight: bold;
+            font-family: 'SimHei', '黑体', sans-serif;
+            margin-top: 20pt;
+            margin-bottom: 10pt;
+            mso-ascii-font-family: 'Arial';
+            mso-hansi-font-family: 'Arial';
+            mso-bidi-font-family: 'Arial';
+            mso-fareast-font-family: 'SimHei';
+            text-align: left;
+        }
+        img { 
+            max-width: 100%; 
+            height: auto;
+        }
+        ul, ol {
+            margin: 8pt 0;
+            padding-left: 2em;
+        }
+        li {
+            margin-bottom: 4pt;
+            text-align: justify;
+        }
+    </style>
+</head>
+<body>
+<div class="Section1">
+${content}
+</div>
+</body>
+</html>`;
+                
+                const blob = new Blob([htmlContent], { type: 'application/msword' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${currentPaper.title}.doc`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+        }
+    </script>
+</body>
+</html>

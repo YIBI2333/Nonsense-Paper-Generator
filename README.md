@@ -4,7 +4,7 @@
 
 一本正经地胡说八道——用标准学术格式生成完全放飞的混沌论文
 
-
+预览：https://yibi2333.github.io/Nonsense-Paper-Generator/
 
 ## **该项目仅供娱乐，请勿在正规用途使用！**
 
